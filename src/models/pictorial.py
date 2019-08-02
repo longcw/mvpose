@@ -2,12 +2,9 @@ import numpy as np
 import scipy
 
 
-
-
-
 def getskel():
     skel = {}
-    skel['tree'] = [{} for i in range ( 13 )]
+    skel['tree'] = [{} for i in range(13)]
     skel['tree'][0]['name'] = 'Nose'
     skel['tree'][0]['children'] = [1, 2, 7, 8]
     skel['tree'][1]['name'] = 'LSho'
@@ -40,19 +37,19 @@ def getskel():
 def getPictoStruct(skel, distribution):
     """to get the pictorial structure"""
     graph = skel['tree']
-    level = np.zeros ( len ( graph ) )
-    for i in range ( len ( graph ) ):
-        queue = np.array ( graph[i]['children'], dtype=np.int32 )
-        for j in range ( queue.shape[0] ):
+    level = np.zeros(len(graph))
+    for i in range(len(graph)):
+        queue = np.array(graph[i]['children'], dtype=np.int32)
+        for j in range(queue.shape[0]):
             graph[queue[j]]['parent'] = i
         while queue.shape[0] != 0:
             level[queue[0]] = level[queue[0]] + 1
-            queue = np.append ( queue, graph[queue[0]]['children'] )
-            queue = np.delete ( queue, 0 )
-            queue = np.array ( queue, dtype=np.int32 )
-    trans_order = np.argsort ( -level )
-    edges = [{} for i in range ( len ( trans_order ) - 1 )]
-    for i in range ( len ( trans_order ) - 1 ):
+            queue = np.append(queue, graph[queue[0]]['children'])
+            queue = np.delete(queue, 0)
+            queue = np.array(queue, dtype=np.int32)
+    trans_order = np.argsort(-level)
+    edges = [{} for i in range(len(trans_order) - 1)]
+    for i in range(len(trans_order) - 1):
         edges[i]['child'] = trans_order[i]
         edges[i]['parent'] = graph[edges[i]['child']]['parent']
         edge_id = distribution['joints2edges'][(edges[i]['child'], edges[i]['parent'])]
@@ -68,10 +65,10 @@ def get_prior(i, n, p, j, edges, X):
     edges_2_joint = [[], 8, 9, 4, 5, 0, 1, 10, 11, 6, 7, 2, 3]
     bone_std = edges[edges_2_joint[i]]['bone_std']
     bone_mean = edges[edges_2_joint[i]]['bone_mean']
-    distance = np.linalg.norm ( X[i][n] - X[p][j] )
+    distance = np.linalg.norm(X[i][n] - X[p][j])
     # TODO: Change to gaussian distribution
-    relative_error = np.abs ( distance - bone_mean ) / bone_std
-    prior = scipy.stats.norm.sf ( relative_error ) * 2
+    relative_error = np.abs(distance - bone_mean) / bone_std
+    prior = scipy.stats.norm.sf(relative_error) * 2
     return prior
 
 
@@ -80,12 +77,12 @@ def get_max(i, p, j, unary, edges, X):
     # unary_sum = np.array ( [0 for n in range ( len ( unary[i] ) )] ) # Change from original implementation
     # import ipdb
     # ipdb.set_trace()
-    unary_sum = np.zeros ( len ( unary[i] ) )
-    for n in range ( len ( unary[i] ) ):
-        prior = get_prior ( i, n, p, j, edges, X )
+    unary_sum = np.zeros(len(unary[i]))
+    for n in range(len(unary[i])):
+        prior = get_prior(i, n, p, j, edges, X)
         unary_sum[n] = prior + unary[i][n]
-    this_max = np.max ( unary_sum )
-    index = np.where ( unary_sum == np.max ( unary_sum ) )[0][0]
+    this_max = np.max(unary_sum)
+    index = np.where(unary_sum == np.max(unary_sum))[0][0]
     return this_max, index
 
 
@@ -100,21 +97,22 @@ def inferPict3D_MaxProd(unary, edges, X):
     """to inference the pictorial structure"""
 
     num = unary.shape[0]
-    for i in range ( num - 1, 0, -1 ):
-        p = get_pa ( i )
-        for j in range ( unary[p].shape[0] ):
-            m = get_max ( i, p, j, unary, edges, X )
+    for i in range(num - 1, 0, -1):
+        p = get_pa(i)
+        for j in range(unary[p].shape[0]):
+            m = get_max(i, p, j, unary, edges, X)
             unary[p][j] = unary[p][j] + m[0]
     # get the max index
 
     values = unary[0]
     # xpk = np.array ( [0 for i in range ( unary.shape[0] )] )
-    xpk = np.zeros ( unary.shape[0], dtype=np.int64 )  # Also change from original implementation
-    xpk[0] = values.argmax ()
+    xpk = np.zeros(unary.shape[0], dtype=np.int64)  # Also change from original implementation
+    xpk[0] = values.argmax()
     import ipdb
+
     ipdb.set_trace()
-    for n in range ( 1, num ):
-        p = get_pa ( n )
-        xn = get_max ( n, p, xpk[p], unary, edges, X )
+    for n in range(1, num):
+        p = get_pa(n)
+        xn = get_max(n, p, xpk[p], unary, edges, X)
         xpk[n] = xn[1]
     return xpk

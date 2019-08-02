@@ -16,11 +16,11 @@ class timeout:
         self.error_message = error_message
 
     def handle_timeout(self, signum, frame):
-        raise RuntimeError ( self.error_message )
+        raise RuntimeError(self.error_message)
 
     def __enter__(self):
-        signal.signal ( signal.SIGALRM, self.handle_timeout )
-        signal.alarm ( self.seconds )
+        signal.signal(signal.SIGALRM, self.handle_timeout)
+        signal.alarm(self.seconds)
 
     def __exit__(self, type, value, traceback):
-        signal.alarm ( 0 )
+        signal.alarm(0)
