@@ -15,6 +15,7 @@ import sys
 
 from easydict import EasyDict as edict
 
+
 def add_path(path):
     if path not in sys.path:
         sys.path.insert(0, path)
@@ -28,19 +29,18 @@ add_path(osp.join(root_dir, 'tools'))
 add_path(lib_path)
 add_path(osp.join(root_dir))
 
+
 class Config:
     user = getpass.getuser()
     # ---------- generate some dirs, e.g. dump dir, weights dir -------------------#
-    output_dir = osp.join(
-        root_dir, 'output')
+    output_dir = osp.join(root_dir, 'output')
     #    os.path.split(os.path.split(os.path.realpath(__file__))[0])[1])
     this_model_dir = osp.split(os.path.realpath(__file__))[0]
     eval_dir = osp.join(output_dir, 'eval_dump')
     tb_dir = osp.join(output_dir, 'tfboard_dump')
     weight = osp.join(root_dir, 'data/imagenet_weights/res101.ckpt')
 
-    program_name = user + ":" + os.path.split(
-        os.path.split(os.path.realpath(__file__))[0])[1]
+    program_name = user + ":" + os.path.split(os.path.split(os.path.realpath(__file__))[0])[1]
 
     # ------------------- Data configuration --------------------------------------#
 
@@ -59,14 +59,11 @@ class Config:
 
     batch_image_preprocess = 'pad'
     train_root_folder = os.path.join(root_dir, 'data/MSCOCO')
-    train_source = os.path.join(
-        root_dir, 'data', 'MSCOCO/odformat/coco_trainvalmini.odgt')
+    train_source = os.path.join(root_dir, 'data', 'MSCOCO/odformat/coco_trainvalmini.odgt')
 
     eval_root_folder = os.path.join(root_dir, 'data/MSCOCO')
-    eval_source = os.path.join(
-        root_dir, 'data', 'MSCOCO/odformat/coco_minival2014.odgt')
-    eval_json = os.path.join(
-        root_dir, 'data', 'MSCOCO/instances_minival2014.json')
+    eval_source = os.path.join(root_dir, 'data', 'MSCOCO/odformat/coco_minival2014.odgt')
+    eval_json = os.path.join(root_dir, 'data', 'MSCOCO/instances_minival2014.json')
 
     filter_gt_ignore_label = True
     train_gt_ignore_label = False
@@ -107,11 +104,13 @@ class Config:
     weight_decay = 0.0001
 
     from utils.tf_utils import lr_policy
+
     max_epoch = 30
     warm_iter = 500
     warm_fractor = 1.0 / 3.0
     multi_stage_lr_policy = lr_policy.MultiStageLR(
-        [[19, basic_lr], [25, basic_lr * 0.1], [30, basic_lr * 0.01]])
+        [[19, basic_lr], [25, basic_lr * 0.1], [30, basic_lr * 0.01]]
+    )
 
     def get_lr(self, epoch):
         return self.multi_stage_lr_policy.get_lr(epoch)
@@ -182,12 +181,11 @@ def link_tools_dir():
         cmd = "ln -s " + os.path.join(root_dir, 'tools') + " tools"
         os.system(cmd)
 
+
 def make_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '-log', '--linklog', default=False, action='store_true')
-    parser.add_argument(
-        '-tool', '--link_tools', default=False, action='store_true')
+    parser.add_argument('-log', '--linklog', default=False, action='store_true')
+    parser.add_argument('-tool', '--link_tools', default=False, action='store_true')
 
     return parser
 

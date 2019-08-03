@@ -54,7 +54,7 @@ from tensorflow.python.ops import variable_scope
 
 
 class Block(collections.namedtuple('Block', ['scope', 'unit_fn', 'args'])):
-  """A named tuple describing a ResNet block.
+    """A named tuple describing a ResNet block.
 
   Its parts are:
     scope: The scope of the `Block`.
@@ -67,7 +67,7 @@ class Block(collections.namedtuple('Block', ['scope', 'unit_fn', 'args'])):
 
 
 def subsample(inputs, factor, scope=None):
-  """Subsamples the input along the spatial dimensions.
+    """Subsamples the input along the spatial dimensions.
 
   Args:
     inputs: A `Tensor` of size [batch, height_in, width_in, channels].
@@ -78,14 +78,14 @@ def subsample(inputs, factor, scope=None):
     output: A `Tensor` of size [batch, height_out, width_out, channels] with the
       input, either intact (if factor == 1) or subsampled (if factor > 1).
   """
-  if factor == 1:
-    return inputs
-  else:
-    return layers.max_pool2d(inputs, [1, 1], stride=factor, scope=scope)
+    if factor == 1:
+        return inputs
+    else:
+        return layers.max_pool2d(inputs, [1, 1], stride=factor, scope=scope)
 
 
 def conv2d_same(inputs, num_outputs, kernel_size, stride, rate=1, scope=None):
-  """Strided 2-D convolution with 'SAME' padding.
+    """Strided 2-D convolution with 'SAME' padding.
 
   When stride > 1, then we do explicit zero-padding, followed by conv2d with
   'VALID' padding.
@@ -120,38 +120,24 @@ def conv2d_same(inputs, num_outputs, kernel_size, stride, rate=1, scope=None):
     output: A 4-D tensor of size [batch, height_out, width_out, channels] with
       the convolution output.
   """
-  if stride == 1:
-    return layers_lib.conv2d(
-        inputs,
-        num_outputs,
-        kernel_size,
-        stride=1,
-        rate=rate,
-        padding='SAME',
-        scope=scope)
-  else:
-    kernel_size_effective = kernel_size + (kernel_size - 1) * (rate - 1)
-    pad_total = kernel_size_effective - 1
-    pad_beg = pad_total // 2
-    pad_end = pad_total - pad_beg
-    inputs = array_ops.pad(
-        inputs, [[0, 0], [pad_beg, pad_end], [pad_beg, pad_end], [0, 0]])
-    return layers_lib.conv2d(
-        inputs,
-        num_outputs,
-        kernel_size,
-        stride=stride,
-        rate=rate,
-        padding='VALID',
-        scope=scope)
+    if stride == 1:
+        return layers_lib.conv2d(
+            inputs, num_outputs, kernel_size, stride=1, rate=rate, padding='SAME', scope=scope
+        )
+    else:
+        kernel_size_effective = kernel_size + (kernel_size - 1) * (rate - 1)
+        pad_total = kernel_size_effective - 1
+        pad_beg = pad_total // 2
+        pad_end = pad_total - pad_beg
+        inputs = array_ops.pad(inputs, [[0, 0], [pad_beg, pad_end], [pad_beg, pad_end], [0, 0]])
+        return layers_lib.conv2d(
+            inputs, num_outputs, kernel_size, stride=stride, rate=rate, padding='VALID', scope=scope
+        )
 
 
 @add_arg_scope
-def stack_blocks_dense(net,
-                       blocks,
-                       output_stride=None,
-                       outputs_collections=None):
-  """Stacks ResNet `Blocks` and controls output feature density.
+def stack_blocks_dense(net, blocks, output_stride=None, outputs_collections=None):
+    """Stacks ResNet `Blocks` and controls output feature density.
 
   First, this function creates scopes for the ResNet in the form of
   'block_name/unit_1', 'block_name/unit_2', etc.
@@ -188,60 +174,60 @@ def stack_blocks_dense(net,
   Raises:
     ValueError: If the target output_stride is not valid.
   """
-  # The current_stride variable keeps track of the effective stride of the
-  # activations. This allows us to invoke atrous convolution whenever applying
-  # the next residual unit would result in the activations having stride larger
-  # than the target output_stride.
-  current_stride = 1
+    # The current_stride variable keeps track of the effective stride of the
+    # activations. This allows us to invoke atrous convolution whenever applying
+    # the next residual unit would result in the activations having stride larger
+    # than the target output_stride.
+    current_stride = 1
 
-  # The atrous convolution rate parameter.
-  rate = 1
+    # The atrous convolution rate parameter.
+    rate = 1
 
-  for block in blocks:
-    with variable_scope.variable_scope(block.scope, 'block', [net]) as sc:
-      for i, unit in enumerate(block.args):
-        if output_stride is not None and current_stride > output_stride:
-          raise ValueError('The target output_stride cannot be reached.')
+    for block in blocks:
+        with variable_scope.variable_scope(block.scope, 'block', [net]) as sc:
+            for i, unit in enumerate(block.args):
+                if output_stride is not None and current_stride > output_stride:
+                    raise ValueError('The target output_stride cannot be reached.')
 
-        with variable_scope.variable_scope('unit_%d' % (i + 1), values=[net]):
-          unit_depth, unit_depth_bottleneck, unit_stride, dilation = unit
-          #print(unit_depth, unit_depth_bottleneck, unit_stride, dilation)
+                with variable_scope.variable_scope('unit_%d' % (i + 1), values=[net]):
+                    unit_depth, unit_depth_bottleneck, unit_stride, dilation = unit
+                    # print(unit_depth, unit_depth_bottleneck, unit_stride, dilation)
 
-          # If we have reached the target output_stride, then we need to employ
-          # atrous convolution with stride=1 and multiply the atrous rate by the
-          # current unit's stride for use in subsequent layers.
-          if output_stride is not None and current_stride == output_stride:
-            net = block.unit_fn(
-                net,
-                depth=unit_depth,
-                depth_bottleneck=unit_depth_bottleneck,
-                stride=1,
-                rate=rate)
-            rate *= unit_stride
+                    # If we have reached the target output_stride, then we need to employ
+                    # atrous convolution with stride=1 and multiply the atrous rate by the
+                    # current unit's stride for use in subsequent layers.
+                    if output_stride is not None and current_stride == output_stride:
+                        net = block.unit_fn(
+                            net, depth=unit_depth, depth_bottleneck=unit_depth_bottleneck, stride=1, rate=rate
+                        )
+                        rate *= unit_stride
 
-          else:
-            net = block.unit_fn(
-                net,
-                depth=unit_depth,
-                depth_bottleneck=unit_depth_bottleneck,
-                stride=unit_stride,
-                rate=dilation)
-            #print('---')
-            current_stride *= unit_stride
-      net = utils.collect_named_outputs(outputs_collections, sc.name, net)
+                    else:
+                        net = block.unit_fn(
+                            net,
+                            depth=unit_depth,
+                            depth_bottleneck=unit_depth_bottleneck,
+                            stride=unit_stride,
+                            rate=dilation,
+                        )
+                        # print('---')
+                        current_stride *= unit_stride
+            net = utils.collect_named_outputs(outputs_collections, sc.name, net)
 
-  if output_stride is not None and current_stride != output_stride:
-    raise ValueError('The target output_stride cannot be reached.')
+    if output_stride is not None and current_stride != output_stride:
+        raise ValueError('The target output_stride cannot be reached.')
 
-  return net
+    return net
 
 
-def resnet_arg_scope(is_training=True,
-                     weight_decay=0.0001,
-                     batch_norm_decay=0.997,
-                     batch_norm_epsilon=1e-5,
-                     batch_norm_scale=True):
-  """Defines the default ResNet arg scope.
+def resnet_arg_scope(
+    is_training=True,
+    weight_decay=0.0001,
+    batch_norm_decay=0.997,
+    batch_norm_epsilon=1e-5,
+    batch_norm_scale=True,
+):
+    """Defines the default ResNet arg scope.
 
   TODO(gpapan): The batch-normalization related default values above are
     appropriate for use in conjunction with the reference ResNet models
@@ -262,28 +248,28 @@ def resnet_arg_scope(is_training=True,
   Returns:
     An `arg_scope` to use for the resnet models.
   """
-  batch_norm_params = {
-      'is_training': is_training,
-      'decay': batch_norm_decay,
-      'epsilon': batch_norm_epsilon,
-      'scale': batch_norm_scale,
-      'updates_collections': ops.GraphKeys.UPDATE_OPS,
-  }
+    batch_norm_params = {
+        'is_training': is_training,
+        'decay': batch_norm_decay,
+        'epsilon': batch_norm_epsilon,
+        'scale': batch_norm_scale,
+        'updates_collections': ops.GraphKeys.UPDATE_OPS,
+    }
 
-  with arg_scope(
-      [layers_lib.conv2d],
-      weights_regularizer=regularizers.l2_regularizer(weight_decay),
-      weights_initializer=initializers.variance_scaling_initializer(),
-      activation_fn=nn_ops.relu,
-      normalizer_fn=layers.batch_norm,
-      normalizer_params=batch_norm_params):
-    with arg_scope([layers.batch_norm], **batch_norm_params):
-      # The following implies padding='SAME' for pool1, which makes feature
-      # alignment easier for dense prediction tasks. This is also used in
-      # https://github.com/facebook/fb.resnet.torch. However the accompanying
-      # code of 'Deep Residual Learning for Image Recognition' uses
-      # padding='VALID' for pool1. You can switch to that choice by setting
-      # tf.contrib.framework.arg_scope([tf.contrib.layers.max_pool2d], padding='VALID').
-      with arg_scope([layers.max_pool2d], padding='SAME') as arg_sc:
-        return arg_sc
-
+    with arg_scope(
+        [layers_lib.conv2d],
+        weights_regularizer=regularizers.l2_regularizer(weight_decay),
+        weights_initializer=initializers.variance_scaling_initializer(),
+        activation_fn=nn_ops.relu,
+        normalizer_fn=layers.batch_norm,
+        normalizer_params=batch_norm_params,
+    ):
+        with arg_scope([layers.batch_norm], **batch_norm_params):
+            # The following implies padding='SAME' for pool1, which makes feature
+            # alignment easier for dense prediction tasks. This is also used in
+            # https://github.com/facebook/fb.resnet.torch. However the accompanying
+            # code of 'Deep Residual Learning for Image Recognition' uses
+            # padding='VALID' for pool1. You can switch to that choice by setting
+            # tf.contrib.framework.arg_scope([tf.contrib.layers.max_pool2d], padding='VALID').
+            with arg_scope([layers.max_pool2d], padding='SAME') as arg_sc:
+                return arg_sc

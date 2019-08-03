@@ -14,6 +14,7 @@ from utils.cython_bbox import bbox_overlaps
 from config import cfg
 from IPython import embed
 
+
 def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes):
     """
     Assign object detection proposals to ground-truth targets. Produces proposal
@@ -28,23 +29,21 @@ def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes):
     # Include ground-truth boxes in the set of candidate rois
     if cfg.TRAIN.USE_GT:
         zeros = np.zeros((gt_boxes.shape[0], 1), dtype=gt_boxes.dtype)
-        all_rois = np.vstack(
-            (all_rois, np.hstack((zeros, gt_boxes[:, :-1])))
-        )
+        all_rois = np.vstack((all_rois, np.hstack((zeros, gt_boxes[:, :-1]))))
         # not sure if it a wise appending, but anyway i am not using it
         ones = np.ones((gt_boxes.shape[0]), dtype=gt_boxes.dtype)
         all_scores = np.hstack((all_scores, ones))
 
-    #num_images = 1
-    #rois_per_image = cfg.TRAIN.BATCH_SIZE / num_images
+    # num_images = 1
+    # rois_per_image = cfg.TRAIN.BATCH_SIZE / num_images
     rois_per_image = np.inf if cfg.TRAIN.BATCH_SIZE == -1 else cfg.TRAIN.BATCH_SIZE
     fg_rois_per_image = np.round(cfg.TRAIN.FG_FRACTION * rois_per_image)
 
     # Sample rois with classification labels and bounding box regression
     # targets
     labels, rois, roi_scores, bbox_targets, bbox_inside_weights = _sample_rois(
-        all_rois, all_scores, gt_boxes, fg_rois_per_image,
-        rois_per_image, _num_classes)
+        all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_image, _num_classes
+    )
 
     rois = rois.reshape(-1, 5)
     roi_scores = roi_scores.reshape(-1)
@@ -91,21 +90,21 @@ def _compute_targets(ex_rois, gt_rois, labels):
     targets = bbox_transform(ex_rois, gt_rois)
     if cfg.TRAIN.BBOX_NORMALIZE_TARGETS_PRECOMPUTED:
         # Optionally normalize targets by a precomputed mean and stdev
-        targets = ((targets - np.array(cfg.TRAIN.BBOX_NORMALIZE_MEANS))
-                   / np.array(cfg.TRAIN.BBOX_NORMALIZE_STDS))
-    return np.hstack(
-        (labels[:, np.newaxis], targets)).astype(np.float32, copy=False)
+        targets = (targets - np.array(cfg.TRAIN.BBOX_NORMALIZE_MEANS)) / np.array(
+            cfg.TRAIN.BBOX_NORMALIZE_STDS
+        )
+    return np.hstack((labels[:, np.newaxis], targets)).astype(np.float32, copy=False)
 
 
-def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image,
-                 rois_per_image, num_classes):
+def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_image, num_classes):
     """Generate a random sample of RoIs comprising foreground and background
     examples.
     """
     # overlaps: (rois x gt_boxes)
     overlaps = bbox_overlaps(
         np.ascontiguousarray(all_rois[:, 1:5], dtype=np.float),
-        np.ascontiguousarray(gt_boxes[:, :4], dtype=np.float))
+        np.ascontiguousarray(gt_boxes[:, :4], dtype=np.float),
+    )
     gt_assignment = overlaps.argmax(axis=1)
     max_overlaps = overlaps.max(axis=1)
     labels = gt_boxes[gt_assignment, 4]
@@ -114,8 +113,7 @@ def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image,
     fg_inds = np.where(max_overlaps >= cfg.TRAIN.FG_THRESH)[0]
     # Guard against the case when an image has fewer than fg_rois_per_image
     # Select background RoIs as those within [BG_THRESH_LO, BG_THRESH_HI)
-    bg_inds = np.where((max_overlaps < cfg.TRAIN.BG_THRESH_HI) &
-                       (max_overlaps >= cfg.TRAIN.BG_THRESH_LO))[0]
+    bg_inds = np.where((max_overlaps < cfg.TRAIN.BG_THRESH_HI) & (max_overlaps >= cfg.TRAIN.BG_THRESH_LO))[0]
 
     # Small modification to the original version where we ensure a fixed number
     # of regions are sampled
@@ -158,12 +156,11 @@ def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image,
     if bg_inds.size > 0:
         bg_inds = npr.choice(bg_inds, size=int(bg_rois_per_this_image), replace=False)
 
-
     # The indices that we're selecting (both fg and bg)
     keep_inds = np.append(fg_inds, bg_inds)
 
     # pad more to ensure a fixed minibatch size
-    #while keep_inds.shape[0] < rois_per_image:
+    # while keep_inds.shape[0] < rois_per_image:
     #    gap = np.minimum(len(all_rois), rois_per_image - keep_inds.shape[0])
     #    gap_indexes = npr.choice(range(len(all_rois)), size=gap, replace=False)
     #    keep_inds = np.append(keep_inds, gap_indexes)
@@ -172,15 +169,13 @@ def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image,
     labels = labels[keep_inds]
     # Clamp labels for the background RoIs to 0
 
-    #*******labels[int(fg_rois_per_image):] = 0
-    labels[int(fg_rois_per_this_image):] = 0
+    # *******labels[int(fg_rois_per_image):] = 0
+    labels[int(fg_rois_per_this_image) :] = 0
     rois = all_rois[keep_inds]
     roi_scores = all_scores[keep_inds]
 
-    bbox_target_data = _compute_targets(
-        rois[:, 1:5], gt_boxes[gt_assignment[keep_inds], :4], labels)
+    bbox_target_data = _compute_targets(rois[:, 1:5], gt_boxes[gt_assignment[keep_inds], :4], labels)
 
-    bbox_targets, bbox_inside_weights = \
-        _get_bbox_regression_labels(bbox_target_data, num_classes)
+    bbox_targets, bbox_inside_weights = _get_bbox_regression_labels(bbox_target_data, num_classes)
 
     return labels, rois, roi_scores, bbox_targets, bbox_inside_weights

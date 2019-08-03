@@ -9,15 +9,15 @@ import numpy as np
 class Config:
     username = 'default'
 
-    cur_dir = os.path.dirname ( os.path.abspath ( __file__ ) )
-    this_dir_name = cur_dir.split ( '/' )[-1]
-    root_dir = os.path.join ( cur_dir )
+    cur_dir = os.path.dirname(os.path.abspath(__file__))
+    this_dir_name = cur_dir.split('/')[-1]
+    root_dir = os.path.join(cur_dir)
 
     proj_name = this_dir_name
 
     # output path
-    output_dir = os.path.join ( root_dir, 'logs', username + '.' + this_dir_name )
-    model_dump_dir = osp.join ( output_dir, 'model_dump' )
+    output_dir = os.path.join(root_dir, 'logs', username + '.' + this_dir_name)
+    model_dump_dir = osp.join(output_dir, 'model_dump')
 
     display = 1
 
@@ -48,16 +48,16 @@ class Config:
 
     def set_args(self, gpu_ids, continue_train=False):
         self.gpu_ids = gpu_ids
-        self.nr_gpus = len ( self.gpu_ids.split ( ',' ) )
+        self.nr_gpus = len(self.gpu_ids.split(','))
         self.continue_train = continue_train
         os.environ["CUDA_VISIBLE_DEVICES"] = self.gpu_ids
-        print ( '>>> Using /gpu:{}'.format ( self.gpu_ids ) )
+        print('>>> Using /gpu:{}'.format(self.gpu_ids))
 
     bn_train = True
-    init_model = osp.join ( root_dir, 'data', 'imagenet_weights', 'res101.ckpt' )
+    init_model = osp.join(root_dir, 'data', 'imagenet_weights', 'res101.ckpt')
 
     nr_skeleton = 17
-    img_path = os.path.join ( root_dir )
+    img_path = os.path.join(root_dir)
     symmetry = [(1, 2), (3, 4), (5, 6), (7, 8), (9, 10), (11, 12), (13, 14), (15, 16)]
 
     imgExtXBorder = 0.1
@@ -69,7 +69,7 @@ class Config:
     data_aug = True  # has to be true
     nr_aug = 4
 
-    pixel_means = np.array ( [[[102.9801, 115.9465, 122.7717]]] )  # BGR
+    pixel_means = np.array([[[102.9801, 115.9465, 122.7717]]])  # BGR
     pixel_norm = True
     data_shape = (384, 288)  # height, width
     output_shape = (96, 72)  # height, width
@@ -80,19 +80,19 @@ class Config:
     gk9 = (13, 13)
     gk7 = (9, 9)
 
-    gt_path = osp.join ( root_dir, 'data', 'COCO', 'MSCOCO', 'annotations', 'person_keypoints_minival2014.json' )
-    det_path = osp.join ( root_dir, 'data', 'COCO', 'dets', 'person_detection_minival411_human553.json' )
+    gt_path = osp.join(root_dir, 'data', 'COCO', 'MSCOCO', 'annotations', 'person_keypoints_minival2014.json')
+    det_path = osp.join(root_dir, 'data', 'COCO', 'dets', 'person_detection_minival411_human553.json')
 
 
-cfg = Config ()
-sys.path.insert ( 0, osp.join ( cfg.root_dir ) )
-sys.path.insert ( 0, osp.join ( cfg.root_dir, 'lib' ) )
-sys.path.insert ( 0, osp.join ( cfg.root_dir, 'lib', 'lib_kernel' ) )
+cfg = Config()
+sys.path.insert(0, osp.join(cfg.root_dir))
+sys.path.insert(0, osp.join(cfg.root_dir, 'lib'))
+sys.path.insert(0, osp.join(cfg.root_dir, 'lib', 'lib_kernel'))
 from tfflat.utils import add_pypath, make_link, make_dir
 
-add_pypath ( osp.join ( cfg.root_dir, 'data' ) )
-add_pypath ( osp.join ( cfg.root_dir, 'data', 'COCO' ) )
+add_pypath(osp.join(cfg.root_dir, 'data'))
+add_pypath(osp.join(cfg.root_dir, 'data', 'COCO'))
 
-make_link ( cfg.output_dir, './log' )
-make_dir ( cfg.output_dir )
-make_dir ( cfg.model_dump_dir )
+make_link(cfg.output_dir, './log')
+make_dir(cfg.output_dir)
+make_dir(cfg.model_dump_dir)

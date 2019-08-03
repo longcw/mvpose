@@ -41,7 +41,7 @@ def data_augmentation(trainData, trainLabel, trainValids, segms=None):
         annot = trainLabel[lab].copy()
         annot_valid = trainValids[lab].copy()
         height, width = ori_img.shape[0], ori_img.shape[1]
-        center = (width / 2., height / 2.)
+        center = (width / 2.0, height / 2.0)
         n = cfg.nr_skeleton
 
         # affrat = random.uniform(0.75, 1.25)
@@ -49,16 +49,30 @@ def data_augmentation(trainData, trainLabel, trainValids, segms=None):
         halfl_w = min(width - center[0], (width - center[0]) / 1.25 * affrat)
         halfl_h = min(height - center[1], (height - center[1]) / 1.25 * affrat)
         # img = cv2.resize(ori_img[int(center[0] - halfl_w) : int(center[0] + halfl_w + 1), int(center[1] - halfl_h) : int(center[1] + halfl_h + 1)], (width, height))
-        img = cv2.resize(ori_img[int(center[1] - halfl_h): int(center[1] + halfl_h + 1),
-                         int(center[0] - halfl_w): int(center[0] + halfl_w + 1)], (width, height))
+        img = cv2.resize(
+            ori_img[
+                int(center[1] - halfl_h) : int(center[1] + halfl_h + 1),
+                int(center[0] - halfl_w) : int(center[0] + halfl_w + 1),
+            ],
+            (width, height),
+        )
         if trainSegms is not None:
-            segm = cv2.resize(ori_segm[int(center[1] - halfl_h): int(center[1] + halfl_h + 1),
-                              int(center[0] - halfl_w): int(center[0] + halfl_w + 1)], (width, height))
+            segm = cv2.resize(
+                ori_segm[
+                    int(center[1] - halfl_h) : int(center[1] + halfl_h + 1),
+                    int(center[0] - halfl_w) : int(center[0] + halfl_w + 1),
+                ],
+                (width, height),
+            )
         for i in range(n):
             annot[i << 1] = (annot[i << 1] - center[0]) / halfl_w * (width - center[0]) + center[0]
             annot[i << 1 | 1] = (annot[i << 1 | 1] - center[1]) / halfl_h * (height - center[1]) + center[1]
             annot_valid[i] *= (
-            (annot[i << 1] >= 0) & (annot[i << 1] < width) & (annot[i << 1 | 1] >= 0) & (annot[i << 1 | 1] < height))
+                (annot[i << 1] >= 0)
+                & (annot[i << 1] < width)
+                & (annot[i << 1 | 1] >= 0)
+                & (annot[i << 1 | 1] < height)
+            )
 
         trainData[lab] = img.transpose(2, 0, 1)
         if trainSegms is not None:
@@ -110,13 +124,15 @@ def data_augmentation(trainData, trainLabel, trainValids, segms=None):
                 x, y = annot[i << 1], annot[i << 1 | 1]
                 coor = np.array([x, y])
                 if x >= 0 and y >= 0:
-                    R = rotMat[:, : 2]
+                    R = rotMat[:, :2]
                     W = np.array([rotMat[0][2], rotMat[1][2]])
                     coor = np.dot(R, coor) + W
                 allc.append(coor[0])
                 allc.append(coor[1])
                 allc_valid.append(
-                    annot_valid[i] * ((coor[0] >= 0) & (coor[0] < width) & (coor[1] >= 0) & (coor[1] < height)))
+                    annot_valid[i]
+                    * ((coor[0] >= 0) & (coor[0] < width) & (coor[1] >= 0) & (coor[1] < height))
+                )
 
             newimg = newimg.transpose(2, 0, 1)
             trainData[counter] = newimg
@@ -130,8 +146,16 @@ def data_augmentation(trainData, trainLabel, trainValids, segms=None):
     else:
         return trainData, trainLabel, trainValids
 
-def joints_heatmap_gen(data, label, tar_size=cfg.output_shape, ori_size=cfg.data_shape, points=cfg.nr_skeleton,
-                       return_valid=False, gaussian_kernel=cfg.gaussain_kernel):
+
+def joints_heatmap_gen(
+    data,
+    label,
+    tar_size=cfg.output_shape,
+    ori_size=cfg.data_shape,
+    points=cfg.nr_skeleton,
+    return_valid=False,
+    gaussian_kernel=cfg.gaussain_kernel,
+):
     if return_valid:
         valid = np.ones((len(data), points), dtype=np.float32)
     ret = np.zeros((len(data), points, tar_size[0], tar_size[1]), dtype='float32')
@@ -142,7 +166,8 @@ def joints_heatmap_gen(data, label, tar_size=cfg.output_shape, ori_size=cfg.data
             label[i][j << 1 | 1] = min(label[i][j << 1 | 1], ori_size[0] - 1)
             label[i][j << 1] = min(label[i][j << 1], ori_size[1] - 1)
             ret[i][j][int(label[i][j << 1 | 1] * tar_size[0] / ori_size[0])][
-                int(label[i][j << 1] * tar_size[1] / ori_size[1])] = 1
+                int(label[i][j << 1] * tar_size[1] / ori_size[1])
+            ] = 1
     for i in range(len(ret)):
         for j in range(points):
             ret[i, j] = cv2.GaussianBlur(ret[i, j], gaussian_kernel, 0)
@@ -151,13 +176,14 @@ def joints_heatmap_gen(data, label, tar_size=cfg.output_shape, ori_size=cfg.data
             am = np.amax(ret[i][j])
             if am <= 1e-8:
                 if return_valid:
-                    valid[i][j] = 0.
+                    valid[i][j] = 0.0
                 continue
             ret[i][j] /= am / 255
     if return_valid:
         return ret, valid
     else:
         return ret
+
 
 def Preprocessing(d, stage='train'):
     height, width = cfg.data_shape
@@ -168,19 +194,21 @@ def Preprocessing(d, stage='train'):
         segms = []
 
     vis = False
-    img = d['data']#cv2.imread(os.path.join(cfg.img_path, d['imgpath']))
+    img = d['data']  # cv2.imread(os.path.join(cfg.img_path, d['imgpath']))
     # hack(multiprocessing data provider)
     while img is None:
         import pdb
+
         pdb.set_trace()
         print('read none image')
         time.sleep(np.random.rand() * 5)
         img = cv2.imread(os.path.join(cfg.img_path, d['imgpath']))
     add = max(img.shape[0], img.shape[1])
-    bimg = cv2.copyMakeBorder(img, add, add, add, add, borderType=cv2.BORDER_CONSTANT,
-                              value=cfg.pixel_means.reshape(-1))
+    bimg = cv2.copyMakeBorder(
+        img, add, add, add, add, borderType=cv2.BORDER_CONSTANT, value=cfg.pixel_means.reshape(-1)
+    )
 
-    bbox = np.array(d['bbox']).reshape(4, ).astype(np.float32)
+    bbox = np.array(d['bbox']).reshape(4).astype(np.float32)
     bbox[:2] += add
 
     if 'joints' in d:
@@ -191,7 +219,7 @@ def Preprocessing(d, stage='train'):
 
     crop_width = bbox[2] * (1 + cfg.imgExtXBorder * 2)
     crop_height = bbox[3] * (1 + cfg.imgExtYBorder * 2)
-    objcenter = np.array([bbox[0] + bbox[2] / 2., bbox[1] + bbox[3] / 2.])
+    objcenter = np.array([bbox[0] + bbox[2] / 2.0, bbox[1] + bbox[3] / 2.0])
 
     if stage == 'train':
         crop_width = crop_width * (1 + 0.25)
@@ -203,15 +231,15 @@ def Preprocessing(d, stage='train'):
     else:
         crop_size = crop_width
         min_shape = width
-    crop_size = min(crop_size, objcenter[0] / width * min_shape * 2. - 1.)
-    crop_size = min(crop_size, (bimg.shape[1] - objcenter[0]) / width * min_shape * 2. - 1)
-    crop_size = min(crop_size, objcenter[1] / height * min_shape * 2. - 1.)
-    crop_size = min(crop_size, (bimg.shape[0] - objcenter[1]) / height * min_shape * 2. - 1)
+    crop_size = min(crop_size, objcenter[0] / width * min_shape * 2.0 - 1.0)
+    crop_size = min(crop_size, (bimg.shape[1] - objcenter[0]) / width * min_shape * 2.0 - 1)
+    crop_size = min(crop_size, objcenter[1] / height * min_shape * 2.0 - 1.0)
+    crop_size = min(crop_size, (bimg.shape[0] - objcenter[1]) / height * min_shape * 2.0 - 1)
 
-    min_x = int(objcenter[0] - crop_size / 2. / min_shape * width)
-    max_x = int(objcenter[0] + crop_size / 2. / min_shape * width)
-    min_y = int(objcenter[1] - crop_size / 2. / min_shape * height)
-    max_y = int(objcenter[1] + crop_size / 2. / min_shape * height)
+    min_x = int(objcenter[0] - crop_size / 2.0 / min_shape * width)
+    max_x = int(objcenter[0] + crop_size / 2.0 / min_shape * width)
+    min_y = int(objcenter[1] - crop_size / 2.0 / min_shape * height)
+    max_y = int(objcenter[1] + crop_size / 2.0 / min_shape * height)
 
     x_ratio = float(width) / (max_x - min_x)
     y_ratio = float(height) / (max_y - min_y)
@@ -240,13 +268,16 @@ def Preprocessing(d, stage='train'):
     if vis:
         tmpimg = img.copy()
         from utils.visualize import draw_skeleton
+
         draw_skeleton(tmpimg, label.astype(int))
         cv2.imwrite('vis.jpg', tmpimg)
-        from IPython import embed; embed()
+        from IPython import embed
+
+        embed()
 
     img = img - cfg.pixel_means
     if cfg.pixel_norm:
-        img = img / 255.
+        img = img / 255.0
     img = img.transpose(2, 0, 1)
     imgs.append(img)
     if 'joints' in d:
@@ -255,20 +286,26 @@ def Preprocessing(d, stage='train'):
 
     if stage == 'train':
         imgs, labels, valids = data_augmentation(imgs, labels, valids)
-        heatmaps15 = joints_heatmap_gen(imgs, labels, cfg.output_shape, cfg.data_shape, return_valid=False,
-                                        gaussian_kernel=cfg.gk15)
-        heatmaps11 = joints_heatmap_gen(imgs, labels, cfg.output_shape, cfg.data_shape, return_valid=False,
-                                        gaussian_kernel=cfg.gk11)
-        heatmaps9 = joints_heatmap_gen(imgs, labels, cfg.output_shape, cfg.data_shape, return_valid=False,
-                                       gaussian_kernel=cfg.gk9)
-        heatmaps7 = joints_heatmap_gen(imgs, labels, cfg.output_shape, cfg.data_shape, return_valid=False,
-                                       gaussian_kernel=cfg.gk7)
+        heatmaps15 = joints_heatmap_gen(
+            imgs, labels, cfg.output_shape, cfg.data_shape, return_valid=False, gaussian_kernel=cfg.gk15
+        )
+        heatmaps11 = joints_heatmap_gen(
+            imgs, labels, cfg.output_shape, cfg.data_shape, return_valid=False, gaussian_kernel=cfg.gk11
+        )
+        heatmaps9 = joints_heatmap_gen(
+            imgs, labels, cfg.output_shape, cfg.data_shape, return_valid=False, gaussian_kernel=cfg.gk9
+        )
+        heatmaps7 = joints_heatmap_gen(
+            imgs, labels, cfg.output_shape, cfg.data_shape, return_valid=False, gaussian_kernel=cfg.gk7
+        )
 
-        return [imgs.astype(np.float32).transpose(0, 2, 3, 1),
-                heatmaps15.astype(np.float32).transpose(0, 2, 3, 1),
-                heatmaps11.astype(np.float32).transpose(0, 2, 3, 1),
-                heatmaps9.astype(np.float32).transpose(0, 2, 3, 1),
-                heatmaps7.astype(np.float32).transpose(0, 2, 3, 1),
-                valids.astype(np.float32)]
+        return [
+            imgs.astype(np.float32).transpose(0, 2, 3, 1),
+            heatmaps15.astype(np.float32).transpose(0, 2, 3, 1),
+            heatmaps11.astype(np.float32).transpose(0, 2, 3, 1),
+            heatmaps9.astype(np.float32).transpose(0, 2, 3, 1),
+            heatmaps7.astype(np.float32).transpose(0, 2, 3, 1),
+            valids.astype(np.float32),
+        ]
     else:
         return [np.asarray(imgs).astype(np.float32), details]

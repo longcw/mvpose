@@ -18,6 +18,7 @@ import zmq
 import atexit
 from itertools import cycle
 
+
 def get_rng(obj=None):
     """
     Get a good RNG seeded with time, pid and the object.
@@ -27,14 +28,15 @@ def get_rng(obj=None):
     Returns:
         np.random.RandomState: the RNG.
     """
-    seed = (id(obj) + os.getpid() +
-            int(datetime.now().strftime("%Y%m%d%H%M%S%f"))) % 4294967295
+    seed = (id(obj) + os.getpid() + int(datetime.now().strftime("%Y%m%d%H%M%S%f"))) % 4294967295
     return np.random.RandomState(seed)
+
 
 def del_weakref(x):
     o = x()
     if o is not None:
         o.__del__()
+
 
 @contextmanager
 def _zmq_catch_error(name):
@@ -44,7 +46,7 @@ def _zmq_catch_error(name):
         print("[{}] Context terminated.".format(name))
         raise Exception
     except zmq.ZMQError as e:
-        if e.errno == errno.ENOTSOCK:       # socket closed
+        if e.errno == errno.ENOTSOCK:  # socket closed
             print("[{}] Socket closed.".format(name))
             raise Exception
         else:
@@ -52,12 +54,14 @@ def _zmq_catch_error(name):
     except Exception:
         raise
 
+
 class DataFlowReentrantGuard(object):
     """
     A tool to enforce non-reentrancy.
     Mostly used on DataFlow whose :meth:`get_data` is stateful,
     so that multiple instances of the iterator cannot co-exist.
     """
+
     def __init__(self):
         self._lock = threading.Lock()
 
@@ -70,12 +74,14 @@ class DataFlowReentrantGuard(object):
         self._lock.release()
         return False
 
+
 class DataFromList(object):
     def __init__(self, datalist, is_train=True, shuffle=True):
         self.rng = get_rng()
         self._datalist = datalist
         self._shuffle = shuffle
         self._is_train = is_train
+
     def get_data(self):
         if self._is_train:
             while True:
@@ -104,6 +110,7 @@ class DataFromList(object):
     def reset_state(self):
         pass
 
+
 class _ParallelMapData(object):
     def __init__(self, ds, buffer_size):
         assert buffer_size > 0, buffer_size
@@ -120,8 +127,9 @@ class _ParallelMapData(object):
 
     def _recv_filter_none(self):
         ret = self._recv()
-        assert ret is not None, \
-            "[{}] Map function cannot return None when strict mode is used.".format(type(self).__name__)
+        assert ret is not None, "[{}] Map function cannot return None when strict mode is used.".format(
+            type(self).__name__
+        )
         return ret
 
     def _fill_buffer(self, cnt=None):
@@ -133,7 +141,8 @@ class _ParallelMapData(object):
                 self._send(dp)
         except StopIteration:
             print(
-                "[{}] buffer_size cannot be larger than the size of the DataFlow!".format(type(self).__name__))
+                "[{}] buffer_size cannot be larger than the size of the DataFlow!".format(type(self).__name__)
+            )
             raise
         self._buffer_occupancy += cnt
 
@@ -144,7 +153,7 @@ class _ParallelMapData(object):
             if ret is not None:
                 yield ret
 
-        self._iter = self.ds.get_data()   # refresh
+        self._iter = self.ds.get_data()  # refresh
         for _ in range(self._buffer_size):
             self._send(next(self._iter))
             ret = self._recv()
@@ -156,7 +165,7 @@ class _ParallelMapData(object):
         for dp in self._iter:
             self._send(dp)
             yield self._recv_filter_none()
-        self._iter = self.ds.get_data()   # refresh
+        self._iter = self.ds.get_data()  # refresh
 
         # first clear the buffer, then fill
         for k in range(self._buffer_size):
@@ -165,6 +174,7 @@ class _ParallelMapData(object):
             if k == self._buffer_size - 1:
                 self._fill_buffer()
             yield dp
+
 
 class MultiProcessMapDataZMQ(_ParallelMapData):
     """
@@ -181,6 +191,7 @@ class MultiProcessMapDataZMQ(_ParallelMapData):
            is guranteed to produce the exact set which `df.get_data()`
            produces. Although the order of data still isn't preserved.
     """
+
     class _Worker(mp.Process):
         def __init__(self, identity, map_func, pipename, hwm):
             super(MultiProcessMapDataZMQ._Worker, self).__init__()
@@ -200,9 +211,9 @@ class MultiProcessMapDataZMQ(_ParallelMapData):
             while True:
                 # dp_list = []
 
-                #for i in range(config.train_batch_per_gpu):
+                # for i in range(config.train_batch_per_gpu):
                 dp_list = loads(socket.recv(copy=False).bytes)
-                #dp_list.append(dp)
+                # dp_list.append(dp)
 
                 dp = self.map_func(dp_list)
                 socket.send(dumps(dp), copy=False)
@@ -237,14 +248,16 @@ class MultiProcessMapDataZMQ(_ParallelMapData):
         except zmq.ZMQError:
             print(
                 "ZMQError in socket.bind(). Perhaps you're \
-                using pipes on a non-local file system. See documentation of PrefetchDataZMQ for more information.")
+                using pipes on a non-local file system. See documentation of PrefetchDataZMQ for more information."
+            )
             raise
 
         self._proc_ids = [u'{}'.format(k).encode('utf-8') for k in range(self.nr_proc)]
         worker_hwm = int(self._buffer_size * 2 // self.nr_proc)
-        self._procs = [MultiProcessMapDataZMQ._Worker(
-            self._proc_ids[k], self.map_func, pipename, worker_hwm)
-            for k in range(self.nr_proc)]
+        self._procs = [
+            MultiProcessMapDataZMQ._Worker(self._proc_ids[k], self.map_func, pipename, worker_hwm)
+            for k in range(self.nr_proc)
+        ]
 
         self.ds.reset_state()
         self._iter = self.ds.get_data()
@@ -253,7 +266,7 @@ class MultiProcessMapDataZMQ(_ParallelMapData):
         for p in self._procs:
             p.deamon = True
             p.start()
-        self._fill_buffer()     # pre-fill the bufer
+        self._fill_buffer()  # pre-fill the bufer
 
     def reset_state(self):
         if self._reset_done:

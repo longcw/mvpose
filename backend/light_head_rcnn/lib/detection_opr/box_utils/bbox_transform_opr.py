@@ -11,7 +11,7 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 
-#todo change bbox_transform to oprerator
+# todo change bbox_transform to oprerator
 def bbox_transform(ex_rois, gt_rois):
     ex_widths = ex_rois[:, 2] - ex_rois[:, 0] + 1.0
     ex_heights = ex_rois[:, 3] - ex_rois[:, 1] + 1.0
@@ -28,15 +28,15 @@ def bbox_transform(ex_rois, gt_rois):
     targets_dw = np.log(gt_widths / ex_widths)
     targets_dh = np.log(gt_heights / ex_heights)
 
-    targets = np.vstack(
-        (targets_dx, targets_dy, targets_dw, targets_dh)).transpose()
+    targets = np.vstack((targets_dx, targets_dy, targets_dw, targets_dh)).transpose()
     return targets
 
 
 def _concat_new_axis(t1, t2, t3, t4, axis):
     return tf.concat(
-        [tf.expand_dims(t1, -1), tf.expand_dims(t2, -1),
-         tf.expand_dims(t3, -1), tf.expand_dims(t4, -1)], axis=axis)
+        [tf.expand_dims(t1, -1), tf.expand_dims(t2, -1), tf.expand_dims(t3, -1), tf.expand_dims(t4, -1)],
+        axis=axis,
+    )
 
 
 def bbox_transform_inv(boxes, deltas):

@@ -62,7 +62,8 @@ from tensorflow.contrib.framework.python.ops import add_arg_scope
 from tensorflow.contrib.framework.python.ops import arg_scope
 from tensorflow.contrib.layers.python.layers import layers as layers_lib
 from tensorflow.contrib.layers.python.layers import utils
-#from tensorflow.contrib.slim.python.slim.nets import resnet_utils
+
+# from tensorflow.contrib.slim.python.slim.nets import resnet_utils
 from . import resnet_utils
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import nn_ops
@@ -72,14 +73,8 @@ resnet_arg_scope = resnet_utils.resnet_arg_scope
 
 
 @add_arg_scope
-def bottleneck(inputs,
-               depth,
-               depth_bottleneck,
-               stride,
-               rate=1,
-               outputs_collections=None,
-               scope=None):
-  """Bottleneck residual unit variant with BN after convolutions.
+def bottleneck(inputs, depth, depth_bottleneck, stride, rate=1, outputs_collections=None, scope=None):
+    """Bottleneck residual unit variant with BN after convolutions.
 
   This is the original residual unit proposed in [1]. See Fig. 1(a) of [2] for
   its definition. Note that we use here the bottleneck variant which has an
@@ -101,39 +96,35 @@ def bottleneck(inputs,
   Returns:
     The ResNet unit's output.
   """
-  with variable_scope.variable_scope(scope, 'bottleneck_v1', [inputs]) as sc:
-    depth_in = utils.last_dimension(inputs.get_shape(), min_rank=4)
-    if depth == depth_in:
-      shortcut = resnet_utils.subsample(inputs, stride, 'shortcut')
-    else:
-      shortcut = layers.conv2d(
-          inputs,
-          depth, [1, 1],
-          stride=stride,
-          activation_fn=None,
-          scope='shortcut')
+    with variable_scope.variable_scope(scope, 'bottleneck_v1', [inputs]) as sc:
+        depth_in = utils.last_dimension(inputs.get_shape(), min_rank=4)
+        if depth == depth_in:
+            shortcut = resnet_utils.subsample(inputs, stride, 'shortcut')
+        else:
+            shortcut = layers.conv2d(
+                inputs, depth, [1, 1], stride=stride, activation_fn=None, scope='shortcut'
+            )
 
-    residual = layers.conv2d(
-        inputs, depth_bottleneck, [1, 1], stride=1, scope='conv1')
-    residual = resnet_utils.conv2d_same(
-        residual, depth_bottleneck, 3, stride, rate=rate, scope='conv2')
-    residual = layers.conv2d(
-        residual, depth, [1, 1], stride=1, activation_fn=None, scope='conv3')
+        residual = layers.conv2d(inputs, depth_bottleneck, [1, 1], stride=1, scope='conv1')
+        residual = resnet_utils.conv2d_same(residual, depth_bottleneck, 3, stride, rate=rate, scope='conv2')
+        residual = layers.conv2d(residual, depth, [1, 1], stride=1, activation_fn=None, scope='conv3')
 
-    output = nn_ops.relu(shortcut + residual)
+        output = nn_ops.relu(shortcut + residual)
 
-    return utils.collect_named_outputs(outputs_collections, sc.name, output)
+        return utils.collect_named_outputs(outputs_collections, sc.name, output)
 
 
-def resnet_v1(inputs,
-              blocks,
-              num_classes=None,
-              global_pool=True,
-              output_stride=None,
-              include_root_block=True,
-              reuse=None,
-              scope=None):
-  """Generator for v1 ResNet models.
+def resnet_v1(
+    inputs,
+    blocks,
+    num_classes=None,
+    global_pool=True,
+    output_stride=None,
+    include_root_block=True,
+    reuse=None,
+    scope=None,
+):
+    """Generator for v1 ResNet models.
 
   This function generates a family of ResNet v1 models. See the resnet_v1_*()
   methods for specific model instantiations, obtained by selecting different
@@ -187,144 +178,121 @@ def resnet_v1(inputs,
   Raises:
     ValueError: If the target output_stride is not valid.
   """
-  with variable_scope.variable_scope(
-      scope, 'resnet_v1', [inputs], reuse=reuse) as sc:
-    end_points_collection = sc.original_name_scope + '_end_points'
-    with arg_scope(
-        [layers.conv2d, bottleneck, resnet_utils.stack_blocks_dense],
-        outputs_collections=end_points_collection):
-      net = inputs
-      if include_root_block:
-        if output_stride is not None:
-          if output_stride % 4 != 0:
-            raise ValueError('The output_stride needs to be a multiple of 4.')
-          output_stride /= 4
-        net = resnet_utils.conv2d_same(net, 64, 7, stride=2, scope='conv1')
-        net = layers_lib.max_pool2d(net, [3, 3], stride=2, scope='pool1')
-      net = resnet_utils.stack_blocks_dense(net, blocks, output_stride)
-      if global_pool:
-        # Global average pooling.
-        net = math_ops.reduce_mean(net, [1, 2], name='pool5', keep_dims=True)
-      if num_classes is not None:
-        net = layers.conv2d(
-            net,
-            num_classes, [1, 1],
-            activation_fn=None,
-            normalizer_fn=None,
-            scope='logits')
-      # Convert end_points_collection into a dictionary of end_points.
-      end_points = utils.convert_collection_to_dict(end_points_collection)
-      if num_classes is not None:
-        end_points['predictions'] = layers_lib.softmax(net, scope='predictions')
-      return net, end_points
+    with variable_scope.variable_scope(scope, 'resnet_v1', [inputs], reuse=reuse) as sc:
+        end_points_collection = sc.original_name_scope + '_end_points'
+        with arg_scope(
+            [layers.conv2d, bottleneck, resnet_utils.stack_blocks_dense],
+            outputs_collections=end_points_collection,
+        ):
+            net = inputs
+            if include_root_block:
+                if output_stride is not None:
+                    if output_stride % 4 != 0:
+                        raise ValueError('The output_stride needs to be a multiple of 4.')
+                    output_stride /= 4
+                net = resnet_utils.conv2d_same(net, 64, 7, stride=2, scope='conv1')
+                net = layers_lib.max_pool2d(net, [3, 3], stride=2, scope='pool1')
+            net = resnet_utils.stack_blocks_dense(net, blocks, output_stride)
+            if global_pool:
+                # Global average pooling.
+                net = math_ops.reduce_mean(net, [1, 2], name='pool5', keep_dims=True)
+            if num_classes is not None:
+                net = layers.conv2d(
+                    net, num_classes, [1, 1], activation_fn=None, normalizer_fn=None, scope='logits'
+                )
+            # Convert end_points_collection into a dictionary of end_points.
+            end_points = utils.convert_collection_to_dict(end_points_collection)
+            if num_classes is not None:
+                end_points['predictions'] = layers_lib.softmax(net, scope='predictions')
+            return net, end_points
 
 
 resnet_v1.default_image_size = 224
 
 
-def resnet_v1_50(inputs,
-                 num_classes=None,
-                 global_pool=True,
-                 output_stride=None,
-                 reuse=None,
-                 scope='resnet_v1_50'):
-  """ResNet-50 model of [1]. See resnet_v1() for arg and return description."""
-  blocks = [
-      resnet_utils.Block('block1', bottleneck,
-                         [(256, 64, 1)] * 2 + [(256, 64, 2)]),
-      resnet_utils.Block('block2', bottleneck,
-                         [(512, 128, 1)] * 3 + [(512, 128, 2)]),
-      resnet_utils.Block('block3', bottleneck,
-                         [(1024, 256, 1)] * 5 + [(1024, 256, 2)]),
-      resnet_utils.Block('block4', bottleneck, [(2048, 512, 1)] * 3)
-  ]
-  return resnet_v1(
-      inputs,
-      blocks,
-      num_classes,
-      global_pool,
-      output_stride,
-      include_root_block=True,
-      reuse=reuse,
-      scope=scope)
+def resnet_v1_50(
+    inputs, num_classes=None, global_pool=True, output_stride=None, reuse=None, scope='resnet_v1_50'
+):
+    """ResNet-50 model of [1]. See resnet_v1() for arg and return description."""
+    blocks = [
+        resnet_utils.Block('block1', bottleneck, [(256, 64, 1)] * 2 + [(256, 64, 2)]),
+        resnet_utils.Block('block2', bottleneck, [(512, 128, 1)] * 3 + [(512, 128, 2)]),
+        resnet_utils.Block('block3', bottleneck, [(1024, 256, 1)] * 5 + [(1024, 256, 2)]),
+        resnet_utils.Block('block4', bottleneck, [(2048, 512, 1)] * 3),
+    ]
+    return resnet_v1(
+        inputs,
+        blocks,
+        num_classes,
+        global_pool,
+        output_stride,
+        include_root_block=True,
+        reuse=reuse,
+        scope=scope,
+    )
 
 
-def resnet_v1_101(inputs,
-                  num_classes=None,
-                  global_pool=True,
-                  output_stride=None,
-                  reuse=None,
-                  scope='resnet_v1_101'):
-  """ResNet-101 model of [1]. See resnet_v1() for arg and return description."""
-  blocks = [
-      resnet_utils.Block('block1', bottleneck,
-                         [(256, 64, 1)] * 2 + [(256, 64, 2)]),
-      resnet_utils.Block('block2', bottleneck,
-                         [(512, 128, 1)] * 3 + [(512, 128, 2)]),
-      resnet_utils.Block('block3', bottleneck,
-                         [(1024, 256, 1)] * 22 + [(1024, 256, 2)]),
-      resnet_utils.Block('block4', bottleneck, [(2048, 512, 1)] * 3)
-  ]
-  return resnet_v1(
-      inputs,
-      blocks,
-      num_classes,
-      global_pool,
-      output_stride,
-      include_root_block=True,
-      reuse=reuse,
-      scope=scope)
+def resnet_v1_101(
+    inputs, num_classes=None, global_pool=True, output_stride=None, reuse=None, scope='resnet_v1_101'
+):
+    """ResNet-101 model of [1]. See resnet_v1() for arg and return description."""
+    blocks = [
+        resnet_utils.Block('block1', bottleneck, [(256, 64, 1)] * 2 + [(256, 64, 2)]),
+        resnet_utils.Block('block2', bottleneck, [(512, 128, 1)] * 3 + [(512, 128, 2)]),
+        resnet_utils.Block('block3', bottleneck, [(1024, 256, 1)] * 22 + [(1024, 256, 2)]),
+        resnet_utils.Block('block4', bottleneck, [(2048, 512, 1)] * 3),
+    ]
+    return resnet_v1(
+        inputs,
+        blocks,
+        num_classes,
+        global_pool,
+        output_stride,
+        include_root_block=True,
+        reuse=reuse,
+        scope=scope,
+    )
 
 
-def resnet_v1_152(inputs,
-                  num_classes=None,
-                  global_pool=True,
-                  output_stride=None,
-                  reuse=None,
-                  scope='resnet_v1_152'):
-  """ResNet-152 model of [1]. See resnet_v1() for arg and return description."""
-  blocks = [
-      resnet_utils.Block('block1', bottleneck,
-                         [(256, 64, 1)] * 2 + [(256, 64, 2)]),
-      resnet_utils.Block('block2', bottleneck,
-                         [(512, 128, 1)] * 7 + [(512, 128, 2)]),
-      resnet_utils.Block('block3', bottleneck,
-                         [(1024, 256, 1)] * 35 + [(1024, 256, 2)]),
-      resnet_utils.Block('block4', bottleneck, [(2048, 512, 1)] * 3)
-  ]
-  return resnet_v1(
-      inputs,
-      blocks,
-      num_classes,
-      global_pool,
-      output_stride,
-      include_root_block=True,
-      reuse=reuse,
-      scope=scope)
+def resnet_v1_152(
+    inputs, num_classes=None, global_pool=True, output_stride=None, reuse=None, scope='resnet_v1_152'
+):
+    """ResNet-152 model of [1]. See resnet_v1() for arg and return description."""
+    blocks = [
+        resnet_utils.Block('block1', bottleneck, [(256, 64, 1)] * 2 + [(256, 64, 2)]),
+        resnet_utils.Block('block2', bottleneck, [(512, 128, 1)] * 7 + [(512, 128, 2)]),
+        resnet_utils.Block('block3', bottleneck, [(1024, 256, 1)] * 35 + [(1024, 256, 2)]),
+        resnet_utils.Block('block4', bottleneck, [(2048, 512, 1)] * 3),
+    ]
+    return resnet_v1(
+        inputs,
+        blocks,
+        num_classes,
+        global_pool,
+        output_stride,
+        include_root_block=True,
+        reuse=reuse,
+        scope=scope,
+    )
 
 
-def resnet_v1_200(inputs,
-                  num_classes=None,
-                  global_pool=True,
-                  output_stride=None,
-                  reuse=None,
-                  scope='resnet_v1_200'):
-  """ResNet-200 model of [2]. See resnet_v1() for arg and return description."""
-  blocks = [
-      resnet_utils.Block('block1', bottleneck,
-                         [(256, 64, 1)] * 2 + [(256, 64, 2)]),
-      resnet_utils.Block('block2', bottleneck,
-                         [(512, 128, 1)] * 23 + [(512, 128, 2)]),
-      resnet_utils.Block('block3', bottleneck,
-                         [(1024, 256, 1)] * 35 + [(1024, 256, 2)]),
-      resnet_utils.Block('block4', bottleneck, [(2048, 512, 1)] * 3)
-  ]
-  return resnet_v1(
-      inputs,
-      blocks,
-      num_classes,
-      global_pool,
-      output_stride,
-      include_root_block=True,
-      reuse=reuse,
-      scope=scope)
+def resnet_v1_200(
+    inputs, num_classes=None, global_pool=True, output_stride=None, reuse=None, scope='resnet_v1_200'
+):
+    """ResNet-200 model of [2]. See resnet_v1() for arg and return description."""
+    blocks = [
+        resnet_utils.Block('block1', bottleneck, [(256, 64, 1)] * 2 + [(256, 64, 2)]),
+        resnet_utils.Block('block2', bottleneck, [(512, 128, 1)] * 23 + [(512, 128, 2)]),
+        resnet_utils.Block('block3', bottleneck, [(1024, 256, 1)] * 35 + [(1024, 256, 2)]),
+        resnet_utils.Block('block4', bottleneck, [(2048, 512, 1)] * 3),
+    ]
+    return resnet_v1(
+        inputs,
+        blocks,
+        num_classes,
+        global_pool,
+        output_stride,
+        include_root_block=True,
+        reuse=reuse,
+        scope=scope,
+    )

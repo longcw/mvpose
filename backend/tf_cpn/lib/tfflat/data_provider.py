@@ -15,10 +15,12 @@ from copy import copy
 from .utils import get_rng
 from setproctitle import setproctitle
 
+
 def del_weakref(x):
     o = x()
     if o is not None:
         o.__del__()
+
 
 @contextmanager
 def _zmq_catch_error(name):
@@ -28,7 +30,7 @@ def _zmq_catch_error(name):
         print("[{}] Context terminated.".format(name))
         raise Exception
     except zmq.ZMQError as e:
-        if e.errno == errno.ENOTSOCK:       # socket closed
+        if e.errno == errno.ENOTSOCK:  # socket closed
             print("[{}] Socket closed.".format(name))
             raise Exception
         else:
@@ -36,12 +38,14 @@ def _zmq_catch_error(name):
     except Exception:
         raise
 
+
 class DataFlowReentrantGuard(object):
     """
     A tool to enforce non-reentrancy.
     Mostly used on DataFlow whose :meth:`get_data` is stateful,
     so that multiple instances of the iterator cannot co-exist.
     """
+
     def __init__(self):
         self._lock = threading.Lock()
 
@@ -53,6 +57,7 @@ class DataFlowReentrantGuard(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._lock.release()
         return False
+
 
 class DataFromList(object):
     def __init__(self, datalist, is_train=True, shuffle=True):
@@ -79,6 +84,7 @@ class DataFromList(object):
     def reset_state(self):
         self.rng = get_rng()
 
+
 class _ParallelMapData(object):
     def __init__(self, ds, buffer_size):
         assert buffer_size > 0, buffer_size
@@ -95,8 +101,9 @@ class _ParallelMapData(object):
 
     def _recv_filter_none(self):
         ret = self._recv()
-        assert ret is not None, \
-            "[{}] Map function cannot return None when strict mode is used.".format(type(self).__name__)
+        assert ret is not None, "[{}] Map function cannot return None when strict mode is used.".format(
+            type(self).__name__
+        )
         return ret
 
     def _fill_buffer(self, cnt=None):
@@ -108,7 +115,8 @@ class _ParallelMapData(object):
                 self._send(dp)
         except StopIteration:
             print(
-                "[{}] buffer_size cannot be larger than the size of the DataFlow!".format(type(self).__name__))
+                "[{}] buffer_size cannot be larger than the size of the DataFlow!".format(type(self).__name__)
+            )
             raise
         self._buffer_occupancy += cnt
 
@@ -119,7 +127,7 @@ class _ParallelMapData(object):
             if ret is not None:
                 yield ret
 
-        self._iter = self.ds.get_data()   # refresh
+        self._iter = self.ds.get_data()  # refresh
         for _ in range(self._buffer_size):
             self._send(next(self._iter))
             ret = self._recv()
@@ -131,7 +139,7 @@ class _ParallelMapData(object):
         for dp in self._iter:
             self._send(dp)
             yield self._recv_filter_none()
-        self._iter = self.ds.get_data()   # refresh
+        self._iter = self.ds.get_data()  # refresh
 
         # first clear the buffer, then fill
         for k in range(self._buffer_size):
@@ -140,6 +148,7 @@ class _ParallelMapData(object):
             if k == self._buffer_size - 1:
                 self._fill_buffer()
             yield dp
+
 
 class MapData(object):
     """
@@ -170,6 +179,7 @@ class MapData(object):
     def reset_state(self):
         pass
 
+
 class MultiProcessMapDataZMQ(_ParallelMapData):
     """
     Same as :class:`MapData`, but start processes to run the mapping function,
@@ -185,6 +195,7 @@ class MultiProcessMapDataZMQ(_ParallelMapData):
            is guranteed to produce the exact set which `df.get_data()`
            produces. Although the order of data still isn't preserved.
     """
+
     class _Worker(mp.Process):
         def __init__(self, identity, map_func, pipename, hwm):
             super(MultiProcessMapDataZMQ._Worker, self).__init__()
@@ -237,14 +248,16 @@ class MultiProcessMapDataZMQ(_ParallelMapData):
         except zmq.ZMQError:
             print(
                 "ZMQError in socket.bind(). Perhaps you're \
-                using pipes on a non-local file system. See documentation of PrefetchDataZMQ for more information.")
+                using pipes on a non-local file system. See documentation of PrefetchDataZMQ for more information."
+            )
             raise
 
         self._proc_ids = [u'{}'.format(k).encode('utf-8') for k in range(self.nr_proc)]
         worker_hwm = int(self._buffer_size * 2 // self.nr_proc)
-        self._procs = [MultiProcessMapDataZMQ._Worker(
-            self._proc_ids[k], self.map_func, pipename, worker_hwm)
-            for k in range(self.nr_proc)]
+        self._procs = [
+            MultiProcessMapDataZMQ._Worker(self._proc_ids[k], self.map_func, pipename, worker_hwm)
+            for k in range(self.nr_proc)
+        ]
 
         self.ds.reset_state()
         self._iter = self.ds.get_data()
@@ -253,7 +266,7 @@ class MultiProcessMapDataZMQ(_ParallelMapData):
         for p in self._procs:
             p.deamon = True
             p.start()
-        self._fill_buffer()     # pre-fill the bufer
+        self._fill_buffer()  # pre-fill the bufer
 
     def reset_state(self):
         if self._reset_done:
@@ -299,6 +312,7 @@ class MultiProcessMapDataZMQ(_ParallelMapData):
         except Exception:
             pass
 
+
 class BatchData(object):
     """
     Stack datapoints into batches.
@@ -339,8 +353,7 @@ class BatchData(object):
         result = []
         for k in range(size):
             if use_list:
-                result.append(
-                    [x[k] for x in data_holder])
+                result.append([x[k] for x in data_holder])
             else:
                 dt = data_holder[0][k]
                 if type(dt) in [int, bool]:
@@ -353,8 +366,7 @@ class BatchData(object):
                     except AttributeError:
                         raise TypeError("Unsupported type to batch: {}".format(type(dt)))
                 try:
-                    result.append(
-                        np.asarray([x[k] for x in data_holder], dtype=tp))
+                    result.append(np.asarray([x[k] for x in data_holder], dtype=tp))
                 except Exception as e:  # noqa
                     logger.exception("Cannot batch data. Perhaps they are of inconsistent shape?")
                     if isinstance(dt, np.ndarray):
@@ -362,11 +374,12 @@ class BatchData(object):
                         logger.error("Shape of all arrays to be batched: " + s)
                     try:
                         # open an ipython shell if possible
-                        import IPython as IP; IP.embed()    # noqa
+                        import IPython as IP
+
+                        IP.embed()  # noqa
                     except ImportError:
                         pass
         return result
 
     def reset_state(self):
         self.ds.reset_state()
-

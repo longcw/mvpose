@@ -39,13 +39,12 @@ class RandomSizedRectCrop(object):
                 y1 = random.randint(0, img.size[1] - h)
 
                 img = img.crop((x1, y1, x1 + w, y1 + h))
-                assert(img.size == (w, h))
+                assert img.size == (w, h)
 
                 return img.resize((self.width, self.height), self.interpolation)
 
         # Fallback
-        scale = RectScale(self.height, self.width,
-                          interpolation=self.interpolation)
+        scale = RectScale(self.height, self.width, interpolation=self.interpolation)
         return scale(img)
 
 
@@ -71,9 +70,9 @@ class RandomErasing(object):
             if w <= img.size()[2] and h <= img.size()[1]:
                 x1 = random.randint(0, img.size()[1] - h)
                 y1 = random.randint(0, img.size()[2] - w)
-                img[0, x1:x1 + h, y1:y1 + w] = self.mean[0]
-                img[1, x1:x1 + h, y1:y1 + w] = self.mean[1]
-                img[2, x1:x1 + h, y1:y1 + w] = self.mean[2]
+                img[0, x1 : x1 + h, y1 : y1 + w] = self.mean[0]
+                img[1, x1 : x1 + h, y1 : y1 + w] = self.mean[1]
+                img[2, x1 : x1 + h, y1 : y1 + w] = self.mean[2]
 
                 return img
 

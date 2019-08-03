@@ -42,16 +42,25 @@ class BaseTrainer(object):
             end = time.time()
 
             if (i + 1) % print_freq == 0:
-                print('Epoch: [{}][{}/{}]\t'
-                      'Time {:.3f} ({:.3f})\t'
-                      'Data {:.3f} ({:.3f})\t'
-                      'Loss {:.3f} ({:.3f})\t'
-                      'Prec {:.2%} ({:.2%})\t'
-                      .format(epoch, i + 1, len(data_loader),
-                              batch_time.val, batch_time.avg,
-                              data_time.val, data_time.avg,
-                              losses.val, losses.avg,
-                              precisions.val, precisions.avg))
+                print(
+                    'Epoch: [{}][{}/{}]\t'
+                    'Time {:.3f} ({:.3f})\t'
+                    'Data {:.3f} ({:.3f})\t'
+                    'Loss {:.3f} ({:.3f})\t'
+                    'Prec {:.2%} ({:.2%})\t'.format(
+                        epoch,
+                        i + 1,
+                        len(data_loader),
+                        batch_time.val,
+                        batch_time.avg,
+                        data_time.val,
+                        data_time.avg,
+                        losses.val,
+                        losses.avg,
+                        precisions.val,
+                        precisions.avg,
+                    )
+                )
 
     def _parse_data(self, inputs):
         raise NotImplementedError
@@ -120,16 +129,25 @@ class CamStyleTrainer(object):
             end = time.time()
 
             if (i + 1) % print_freq == 0:
-                print('Epoch: [{}][{}/{}]\t'
-                      'Time {:.3f} ({:.3f})\t'
-                      'Data {:.3f} ({:.3f})\t'
-                      'Loss {:.3f} ({:.3f})\t'
-                      'Prec {:.2%} ({:.2%})\t'
-                      .format(epoch, i + 1, len(data_loader),
-                              batch_time.val, batch_time.avg,
-                              data_time.val, data_time.avg,
-                              losses.val, losses.avg,
-                              precisions.val, precisions.avg))
+                print(
+                    'Epoch: [{}][{}/{}]\t'
+                    'Time {:.3f} ({:.3f})\t'
+                    'Data {:.3f} ({:.3f})\t'
+                    'Loss {:.3f} ({:.3f})\t'
+                    'Prec {:.2%} ({:.2%})\t'.format(
+                        epoch,
+                        i + 1,
+                        len(data_loader),
+                        batch_time.val,
+                        batch_time.avg,
+                        data_time.val,
+                        data_time.avg,
+                        losses.val,
+                        losses.avg,
+                        precisions.val,
+                        precisions.avg,
+                    )
+                )
 
     def _parse_data(self, inputs):
         imgs, _, pids, _ = inputs
@@ -157,7 +175,7 @@ class CamStyleTrainer(object):
         targets = self._class_to_one_hot(targets.data.cpu(), num_class)
         targets = Variable(targets.cuda())
         outputs = torch.nn.LogSoftmax()(outputs)
-        loss = - (targets * outputs)
+        loss = -(targets * outputs)
         loss = loss.sum(dim=1)
         loss = loss.mean(dim=0)
         return loss
@@ -169,4 +187,3 @@ class CamStyleTrainer(object):
         targets_onehot.scatter_(1, targets, 0.9)
         targets_onehot.add_(0.1 / num_class)
         return targets_onehot
-

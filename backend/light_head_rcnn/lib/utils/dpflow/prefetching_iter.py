@@ -6,6 +6,7 @@
 
 import threading
 
+
 class PrefetchingIter:
     '''
     iters:  DataIter, must have forward to get  
@@ -37,7 +38,7 @@ class PrefetchingIter:
                             cnt += 1
                             blobs_list.append(blobs)
 
-                    #for gpu_id in range(num_gpu):
+                    # for gpu_id in range(num_gpu):
                     #    blobs = next(iters)
                     #    blobs_list.append(blobs)
                     self.next_batch[i] = blobs_list
@@ -47,8 +48,8 @@ class PrefetchingIter:
                 self.data_ready[i].set()
 
         self.prefetch_threads = [
-            threading.Thread(target=prefetch_func, args=[self, i]) \
-            for i in range(self.n_iter)]
+            threading.Thread(target=prefetch_func, args=[self, i]) for i in range(self.n_iter)
+        ]
         for thread in self.prefetch_threads:
             thread.setDaemon(True)
             thread.start()

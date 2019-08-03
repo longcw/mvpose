@@ -7,7 +7,6 @@ import re
 
 
 class Market(object):
-
     def __init__(self, root):
 
         self.images_dir = osp.join(root)
@@ -27,7 +26,8 @@ class Market(object):
         for fpath in fpaths:
             fname = osp.basename(fpath)
             pid, cam = map(int, pattern.search(fname).groups())
-            if pid == -1: continue
+            if pid == -1:
+                continue
             if relabel:
                 if pid not in all_pids:
                     all_pids[pid] = len(all_pids)
@@ -48,11 +48,7 @@ class Market(object):
         print(self.__class__.__name__, "dataset loaded")
         print("  subset   | # ids | # images")
         print("  ---------------------------")
-        print("  train    | {:5d} | {:8d}"
-              .format(self.num_train_ids, len(self.train)))
-        print("  query    | {:5d} | {:8d}"
-              .format(self.num_query_ids, len(self.query)))
-        print("  gallery  | {:5d} | {:8d}"
-              .format(self.num_gallery_ids, len(self.gallery)))
-        print("  camstyle  | {:5d} | {:8d}"
-              .format(self.num_camstyle_ids, len(self.camstyle)))
+        print("  train    | {:5d} | {:8d}".format(self.num_train_ids, len(self.train)))
+        print("  query    | {:5d} | {:8d}".format(self.num_query_ids, len(self.query)))
+        print("  gallery  | {:5d} | {:8d}".format(self.num_gallery_ids, len(self.gallery)))
+        print("  camstyle  | {:5d} | {:8d}".format(self.num_camstyle_ids, len(self.camstyle)))

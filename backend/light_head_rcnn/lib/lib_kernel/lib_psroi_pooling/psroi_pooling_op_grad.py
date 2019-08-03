@@ -2,6 +2,7 @@ import tensorflow as tf
 from tensorflow.python.framework import ops
 import os
 import sys
+
 sys.path.insert(0, os.path.dirname(__file__))
 import psroi_pooling_op
 import pdb
@@ -24,6 +25,7 @@ import pdb
 #   output_shape = tf.TensorShape([num_rois, pooled_height, pooled_width, output_dim])
 #   return [output_shape, output_shape]
 
+
 @ops.RegisterGradient("PSROIPool")
 def _psroi_pool_grad(op, grad, _):
     """The gradients for `PSROI_pool`.
@@ -41,8 +43,7 @@ def _psroi_pool_grad(op, grad, _):
     spatial_scale = op.get_attr('spatial_scale')
 
     # compute gradient
-    #data_grad = psroi_pooling_op.psroi_pool_grad(data, rois, argmax, grad, pooled_height, pooled_width, spatial_scale)
-    data_grad = psroi_pooling_op.psroi_pool_grad(
-        data, rois, mapping_channel, grad, spatial_scale)
+    # data_grad = psroi_pooling_op.psroi_pool_grad(data, rois, argmax, grad, pooled_height, pooled_width, spatial_scale)
+    data_grad = psroi_pooling_op.psroi_pool_grad(data, rois, mapping_channel, grad, spatial_scale)
 
     return [data_grad, None]  # List of one Tensor, since we have one input

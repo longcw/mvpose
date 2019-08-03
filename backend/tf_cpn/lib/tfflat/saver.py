@@ -4,6 +4,7 @@ from tensorflow.python import pywrap_tensorflow
 import os
 import os.path as osp
 
+
 def get_variables_in_checkpoint_file(file_name):
     try:
         reader = pywrap_tensorflow.NewCheckpointReader(file_name)
@@ -12,9 +13,8 @@ def get_variables_in_checkpoint_file(file_name):
     except Exception as e:  # pylint: disable=broad-except
         print(str(e))
         if "corrupted compressed block contents" in str(e):
-            print(
-                "It's likely that your checkpoint file has been compressed "
-                "with SNAPPY.")
+            print("It's likely that your checkpoint file has been compressed " "with SNAPPY.")
+
 
 class Saver(object):
     def __init__(self, sess, var_list, model_dump_dir, name_prefix='snapshot'):
@@ -22,7 +22,7 @@ class Saver(object):
         self.var_list = var_list
         self.model_dump_dir = model_dump_dir
         self._name_prefix = name_prefix
-        
+
         self.saver = tf.train.Saver(var_list=var_list, max_to_keep=100000)
 
     def save_model(self, iter):
@@ -33,8 +33,9 @@ class Saver(object):
         self.saver.save(self.sess, filename)
         print('Wrote snapshot to: {:s}'.format(filename))
 
+
 def load_model(sess, model_path):
-    #TODO(global variables ?? how about _adam weights)
+    # TODO(global variables ?? how about _adam weights)
     variables = tf.global_variables()
     var_keep_dic = get_variables_in_checkpoint_file(model_path)
     if 'global_step' in var_keep_dic:

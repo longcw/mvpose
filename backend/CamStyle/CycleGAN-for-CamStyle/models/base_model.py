@@ -4,14 +4,14 @@ from collections import OrderedDict
 from . import networks
 
 
-class BaseModel():
+class BaseModel:
 
     # modify parser to add command line options,
     # and also change the default values if needed
     @staticmethod
     def modify_commandline_options(parser, is_train):
         return parser
-    
+
     def name(self):
         return 'BaseModel'
 
@@ -104,8 +104,9 @@ class BaseModel():
     def __patch_instance_norm_state_dict(self, state_dict, module, keys, i=0):
         key = keys[i]
         if i + 1 == len(keys):  # at the end, pointing to a parameter/buffer
-            if module.__class__.__name__.startswith('InstanceNorm') and \
-                    (key == 'running_mean' or key == 'running_var'):
+            if module.__class__.__name__.startswith('InstanceNorm') and (
+                key == 'running_mean' or key == 'running_var'
+            ):
                 if getattr(module, key) is None:
                     state_dict.pop('.'.join(keys))
         else:

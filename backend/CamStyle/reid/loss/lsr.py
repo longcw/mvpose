@@ -15,7 +15,7 @@ class LSRLoss(nn.Module):
         targets = self._class_to_one_hot(targets.data.cpu(), num_class)
         targets = Variable(targets.cuda())
         outputs = torch.nn.LogSoftmax()(inputs)
-        loss = - (targets * outputs)
+        loss = -(targets * outputs)
         loss = loss.sum(dim=1)
         loss = loss.mean(dim=0)
         return loss

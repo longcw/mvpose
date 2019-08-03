@@ -3,10 +3,7 @@ from .duke import Duke
 from .market import Market
 
 
-__factory = {
-    'market': Market,
-    'duke': Duke,
-}
+__factory = {'market': Market, 'duke': Duke}
 
 
 def names():

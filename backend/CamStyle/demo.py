@@ -14,39 +14,41 @@ import pdb
 
 
 def demo(img_id):
-    extractor = FeatureExtractor ()
-    dataset = CommonDataset ( post_processed_dir='/home/jiangwen/Multi-Pose/backend/CamStyle/data/Shelf/post_processed' )
+    extractor = FeatureExtractor()
+    dataset = CommonDataset(
+        post_processed_dir='/home/jiangwen/Multi-Pose/backend/CamStyle/data/Shelf/post_processed'
+    )
     data_batch = dataset[img_id]
-    dismat = extractor.get_dismat ( data_batch, rerank=False )
+    dismat = extractor.get_dismat(data_batch, rerank=False)
     # query = list ( zip ( *data_batch[1:] ) )
     cnt = 0
-    for i, cam_id in enumerate ( dataset.cam_names ):
+    for i, cam_id in enumerate(dataset.cam_names):
         # Plot origin image
         base = 1
-        info_dict = dataset.info_dict[cam_id][str ( img_id )]
-        fname = info_dict.pop ( 'image_name', None )
-        plt.subplot ( 5, 5, 5 * i + base )
+        info_dict = dataset.info_dict[cam_id][str(img_id)]
+        fname = info_dict.pop('image_name', None)
+        plt.subplot(5, 5, 5 * i + base)
         base += 1
-        img = Image.open ( fname )
-        plt.imshow ( img )
-        plt.xlabel ( f'{osp.split(osp.split(fname)[-2])[-1]}/{osp.split(fname)[-1]}' )
-        plt.xticks ( [] )
-        plt.yticks ( [] )
-        for k, v in info_dict.items ():
-            plt.subplot ( 5, 5, 5 * i + base )
+        img = Image.open(fname)
+        plt.imshow(img)
+        plt.xlabel(f'{osp.split(osp.split(fname)[-2])[-1]}/{osp.split(fname)[-1]}')
+        plt.xticks([])
+        plt.yticks([])
+        for k, v in info_dict.items():
+            plt.subplot(5, 5, 5 * i + base)
             # plot cropped image.
             base += 1
-            img = Image.open ( v['img_path'] )
-            plt.imshow ( img )
+            img = Image.open(v['img_path'])
+            plt.imshow(img)
             fname = v['img_path']
-            plt.xlabel ( f'{osp.split(osp.split(fname)[-2])[-1]}/{osp.split(fname)[-1]}#{cnt}' )
+            plt.xlabel(f'{osp.split(osp.split(fname)[-2])[-1]}/{osp.split(fname)[-1]}#{cnt}')
             cnt += 1
-            plt.xticks ( [] )
-            plt.yticks ( [] )
-    plt.show ()
+            plt.xticks([])
+            plt.yticks([])
+    plt.show()
     return dismat
 
 
 if __name__ == '__main__':
     img_id = 0
-    demo ( img_id=img_id )
+    demo(img_id=img_id)

@@ -16,9 +16,7 @@ from utils.cython_bbox import bbox_overlaps
 from detection_opr.utils.bbox_transform import bbox_transform
 
 
-def anchor_target_layer(
-        gt_boxes, im_info, _feat_stride, all_anchors, num_anchors,
-        is_restrict_bg=False):
+def anchor_target_layer(gt_boxes, im_info, _feat_stride, all_anchors, num_anchors, is_restrict_bg=False):
     """Same as the anchor target layer in original Fast/er RCNN """
     # A = num_anchors
     # K = total_anchors / num_anchors
@@ -31,10 +29,10 @@ def anchor_target_layer(
 
     # only keep anchors inside the image
     inds_inside = np.where(
-        (all_anchors[:, 0] >= -_allowed_border) &
-        (all_anchors[:, 1] >= -_allowed_border) &
-        (all_anchors[:, 2] < im_info[1] + _allowed_border) &  # width
-        (all_anchors[:, 3] < im_info[0] + _allowed_border)  # height
+        (all_anchors[:, 0] >= -_allowed_border)
+        & (all_anchors[:, 1] >= -_allowed_border)
+        & (all_anchors[:, 2] < im_info[1] + _allowed_border)
+        & (all_anchors[:, 3] < im_info[0] + _allowed_border)  # width  # height
     )[0]
 
     anchors = all_anchors[inds_inside, :]
@@ -45,13 +43,12 @@ def anchor_target_layer(
 
     # overlaps between the anchors and the gt boxes
     overlaps = bbox_overlaps(
-        np.ascontiguousarray(anchors, dtype=np.float),
-        np.ascontiguousarray(gt_boxes, dtype=np.float))
+        np.ascontiguousarray(anchors, dtype=np.float), np.ascontiguousarray(gt_boxes, dtype=np.float)
+    )
     argmax_overlaps = overlaps.argmax(axis=1)
     max_overlaps = overlaps[np.arange(len(inds_inside)), argmax_overlaps]
     gt_argmax_overlaps = overlaps.argmax(axis=0)
-    gt_max_overlaps = overlaps[
-        gt_argmax_overlaps, np.arange(overlaps.shape[1])]
+    gt_max_overlaps = overlaps[gt_argmax_overlaps, np.arange(overlaps.shape[1])]
     gt_argmax_overlaps = np.where(overlaps == gt_max_overlaps)[0]
 
     if not cfg.TRAIN.RPN_CLOBBER_POSITIVES:
@@ -66,8 +63,7 @@ def anchor_target_layer(
     num_fg = int(cfg.TRAIN.RPN_FG_FRACTION * cfg.TRAIN.RPN_BATCHSIZE)
     fg_inds = np.where(labels == 1)[0]
     if len(fg_inds) > num_fg:
-        disable_inds = npr.choice(
-            fg_inds, size=(len(fg_inds) - num_fg), replace=False)
+        disable_inds = npr.choice(fg_inds, size=(len(fg_inds) - num_fg), replace=False)
         labels[disable_inds] = -1
 
     num_bg = cfg.TRAIN.RPN_BATCHSIZE - np.sum(labels == 1)
@@ -75,8 +71,7 @@ def anchor_target_layer(
         num_bg = max(num_bg, num_fg * 1.5)
     bg_inds = np.where(labels == 0)[0]
     if len(bg_inds) > num_bg:
-        disable_inds = npr.choice(
-            bg_inds, size=(len(bg_inds) - num_bg), replace=False)
+        disable_inds = npr.choice(bg_inds, size=(len(bg_inds) - num_bg), replace=False)
         labels[disable_inds] = -1
 
     bbox_targets = np.zeros((len(inds_inside), 4), dtype=np.float32)
@@ -113,8 +108,7 @@ def _unmap(data, count, inds, fill=0):
 
 def _compute_targets(ex_rois, gt_rois):
     """Compute bounding-box regression targets for an image."""
-    targets = bbox_transform(ex_rois, gt_rois[:, :4]).astype(
-        np.float32, copy=False)
+    targets = bbox_transform(ex_rois, gt_rois[:, :4]).astype(np.float32, copy=False)
     if 'RPN_NORMALIZE_TARGETS' in cfg.TRAIN.keys() and cfg.TRAIN.RPN_NORMALIZE_TARGETS:
         assert cfg.TRAIN.RPN_NORMALIZE_MEANS is not None
         assert cfg.TRAIN.RPN_NORMALIZE_STDS is not None

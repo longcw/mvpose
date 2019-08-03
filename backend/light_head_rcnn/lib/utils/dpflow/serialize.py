@@ -5,6 +5,7 @@
 import sys
 import msgpack
 import msgpack_numpy
+
 msgpack_numpy.patch()
 
 # https://github.com/apache/arrow/pull/1223#issuecomment-359895666

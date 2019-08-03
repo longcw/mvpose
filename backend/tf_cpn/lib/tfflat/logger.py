@@ -13,7 +13,8 @@ RED = FAIL
 WHITE = END
 YELLOW = WARNING
 
-class colorlogger():
+
+class colorlogger:
     def __init__(self, log_dir, log_name='train_logs.txt'):
         # set log
         self._logger = logging.getLogger(log_name)
@@ -25,9 +26,7 @@ class colorlogger():
         file_log.setLevel(logging.INFO)
         console_log = logging.StreamHandler()
         console_log.setLevel(logging.INFO)
-        formatter = logging.Formatter(
-            "{}%(asctime)s{} %(message)s".format(GREEN, END),
-            "%m-%d %H:%M:%S")
+        formatter = logging.Formatter("{}%(asctime)s{} %(message)s".format(GREEN, END), "%m-%d %H:%M:%S")
         file_log.setFormatter(formatter)
         console_log.setFormatter(formatter)
         self._logger.addHandler(file_log)

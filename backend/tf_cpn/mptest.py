@@ -22,12 +22,14 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from pycocotools import mask as COCOmask
 from tqdm import tqdm
+
+
 def test_net(tester, logger, dets, det_range):
     # here we assume all boxes are pre-processed.
     nms_method = 'nms'
-    nms_thresh = 1.
+    nms_thresh = 1.0
     min_scores = 1e-10
-    min_box_size = 0.  # 8 ** 2
+    min_box_size = 0.0  # 8 ** 2
 
     all_res = []
     dump_results = []
@@ -45,8 +47,10 @@ def test_net(tester, logger, dets, det_range):
         img_start = img_end
 
         iter_avg_cost_time = (time.time() - start_time) / (img_end - det_range[0])
-        print('ran %.ds >> << left %.ds' % (
-            iter_avg_cost_time * (img_end - det_range[0]), iter_avg_cost_time * (det_range[1] - img_end)))
+        print(
+            'ran %.ds >> << left %.ds'
+            % (iter_avg_cost_time * (img_end - det_range[0]), iter_avg_cost_time * (det_range[1] - img_end))
+        )
         print('avg cost time: ', iter_avg_cost_time)
         all_res.append([])
 
@@ -58,8 +62,10 @@ def test_net(tester, logger, dets, det_range):
             cls_dets[i, 4] = np.array(test_data[i]['score'])
 
         # nms and filter
-        keep = np.where((cls_dets[:, 4] >= min_scores) &
-                        ((cls_dets[:, 3] - cls_dets[:, 1]) * (cls_dets[:, 2] - cls_dets[:, 0]) >= min_box_size))[0]
+        keep = np.where(
+            (cls_dets[:, 4] >= min_scores)
+            & ((cls_dets[:, 3] - cls_dets[:, 1]) * (cls_dets[:, 2] - cls_dets[:, 0]) >= min_box_size)
+        )[0]
         cls_dets = cls_dets[keep]
         if len(cls_dets) > 0:
             if nms_method == 'nms':
@@ -113,13 +119,17 @@ def test_net(tester, logger, dets, det_range):
 
             for test_image_id in range(start_id, end_id):
                 r0 = res[test_image_id - start_id].copy()
-                r0 /= 255.
+                r0 /= 255.0
                 r0 += 0.5
                 for w in range(cfg.nr_skeleton):
                     res[test_image_id - start_id, w] /= np.amax(res[test_image_id - start_id, w])
                 border = 10
-                dr = np.zeros((cfg.nr_skeleton, cfg.output_shape[0] + 2 * border, cfg.output_shape[1] + 2 * border))
-                dr[:, border:-border, border:-border] = res[test_image_id - start_id][:cfg.nr_skeleton].copy()
+                dr = np.zeros(
+                    (cfg.nr_skeleton, cfg.output_shape[0] + 2 * border, cfg.output_shape[1] + 2 * border)
+                )
+                dr[:, border:-border, border:-border] = res[test_image_id - start_id][
+                    : cfg.nr_skeleton
+                ].copy()
                 for w in range(cfg.nr_skeleton):
                     dr[w] = cv2.GaussianBlur(dr[w], (21, 21), 0)
                 for w in range(cfg.nr_skeleton):
@@ -144,10 +154,18 @@ def test_net(tester, logger, dets, det_range):
                 # map back to original images
                 crops[test_image_id, :] = details[test_image_id - start_id, :]
                 for w in range(cfg.nr_skeleton):
-                    cls_skeleton[test_image_id, w, 0] = cls_skeleton[test_image_id, w, 0] / cfg.data_shape[1] * (
-                    crops[test_image_id][2] - crops[test_image_id][0]) + crops[test_image_id][0]
-                    cls_skeleton[test_image_id, w, 1] = cls_skeleton[test_image_id, w, 1] / cfg.data_shape[0] * (
-                    crops[test_image_id][3] - crops[test_image_id][1]) + crops[test_image_id][1]
+                    cls_skeleton[test_image_id, w, 0] = (
+                        cls_skeleton[test_image_id, w, 0]
+                        / cfg.data_shape[1]
+                        * (crops[test_image_id][2] - crops[test_image_id][0])
+                        + crops[test_image_id][0]
+                    )
+                    cls_skeleton[test_image_id, w, 1] = (
+                        cls_skeleton[test_image_id, w, 1]
+                        / cfg.data_shape[0]
+                        * (crops[test_image_id][3] - crops[test_image_id][1])
+                        + crops[test_image_id][1]
+                    )
         all_res[-1] = [cls_skeleton.copy(), cls_dets.copy()]
 
         cls_partsco = cls_skeleton[:, :, 2].copy().reshape(-1, cfg.nr_skeleton)
@@ -157,11 +175,19 @@ def test_net(tester, logger, dets, det_range):
         # rescore
         cls_dets[:, -1] = cls_scores * cls_partsco.mean(axis=1)
         cls_skeleton = np.concatenate(
-            [cls_skeleton.reshape(-1, cfg.nr_skeleton * 3), (cls_scores * cls_partsco.mean(axis=1))[:, np.newaxis]],
-            axis=1)
+            [
+                cls_skeleton.reshape(-1, cfg.nr_skeleton * 3),
+                (cls_scores * cls_partsco.mean(axis=1))[:, np.newaxis],
+            ],
+            axis=1,
+        )
         for i in range(len(cls_skeleton)):
-            result = dict(image_id=im_info['image_id'], category_id=1, score=float(round(cls_skeleton[i][-1], 4)),
-                          keypoints=cls_skeleton[i][:-1].round(3).tolist())
+            result = dict(
+                image_id=im_info['image_id'],
+                category_id=1,
+                score=float(round(cls_skeleton[i][-1], 4)),
+                keypoints=cls_skeleton[i][:-1].round(3).tolist(),
+            )
             dump_results.append(result)
     return all_res, dump_results
 
@@ -169,6 +195,7 @@ def test_net(tester, logger, dets, det_range):
 def test(test_model, logger):
     eval_gt = COCO(cfg.gt_path)
     import json
+
     with open(cfg.det_path, 'r') as f:
         dets = json.load(f)
 
@@ -195,10 +222,11 @@ def test(test_model, logger):
         coco_test_data.sort(key=lambda x: x['imgid'])
         for i in coco_test_data:
             i['image_id'] = i['imgid']
-            i['score'] = 1.
+            i['score'] = 1.0
         dets = coco_test_data
 
     from tfflat.mp_utils import MultiProc
+
     img_start = 0
     ranges = [0]
     images_per_gpu = int(img_num / len(args.gpu_ids.split(','))) + 1
@@ -235,6 +263,7 @@ def test(test_model, logger):
 
 
 if __name__ == '__main__':
+
     def parse_args():
         parser = argparse.ArgumentParser()
         parser.add_argument('--gpu', '-d', type=str, dest='gpu_ids')
@@ -262,7 +291,9 @@ if __name__ == '__main__':
     args = parse_args()
 
     if args.test_model:
-        logger = colorlogger(cfg.output_dir, 'test_model_{}'.format(args.test_model.split('/')[-1].split('.')[0]))
+        logger = colorlogger(
+            cfg.output_dir, 'test_model_{}'.format(args.test_model.split('/')[-1].split('.')[0])
+        )
         test(args.test_model, logger)
     else:
         for i in range(*eval(args.test_epochs)):

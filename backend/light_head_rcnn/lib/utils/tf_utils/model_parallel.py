@@ -5,6 +5,7 @@
 """
 import tensorflow as tf
 
+
 def average_gradients(tower_grads):
     """Calculate the average gradient for each shared variable across all towers.
     Note that this function provides a synchronization point across all towers.
@@ -39,6 +40,7 @@ def average_gradients(tower_grads):
         grad_and_var = (grad, v)
         average_grads.append(grad_and_var)
     return average_grads
+
 
 def sum_gradients(tower_grads):
     """Calculate the average gradient for each shared variable across all towers.

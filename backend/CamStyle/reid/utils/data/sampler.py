@@ -4,8 +4,12 @@ from collections import defaultdict
 import numpy as np
 import torch
 from torch.utils.data.sampler import (
-    Sampler, SequentialSampler, RandomSampler, SubsetRandomSampler,
-    WeightedRandomSampler)
+    Sampler,
+    SequentialSampler,
+    RandomSampler,
+    SubsetRandomSampler,
+    WeightedRandomSampler,
+)
 
 
 class RandomIdentitySampler(Sampler):

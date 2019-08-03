@@ -10,6 +10,7 @@ from config import config
 from utils.dpflow.serialize import loads, dumps
 import dataset
 
+
 def data_sender(id, name, *args):
     context = zmq.Context()
     sender = context.socket(zmq.PUSH)
@@ -28,9 +29,7 @@ def provider(nr_proc, name, *args):
 
     procs = []
     for i in range(nr_proc):
-        w = mp.Process(
-            target=data_sender,
-            args=(proc_ids[i], name, *args))
+        w = mp.Process(target=data_sender, args=(proc_ids[i], name, *args))
         w.deamon = True
         procs.append(w)
 
@@ -39,6 +38,7 @@ def provider(nr_proc, name, *args):
 
 
 # , dataset.train_dataset()
+
 
 def receiver(name):
     context = zmq.Context()
@@ -54,6 +54,7 @@ def receiver(name):
 if __name__ == "__main__":
     from IPython import embed
     import time
+
     provider(config.nr_dpflows, config.program_name)
     dataiter = receiver(config.program_name)
     start = time.clock()

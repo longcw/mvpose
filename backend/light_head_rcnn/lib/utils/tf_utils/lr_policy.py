@@ -6,17 +6,19 @@
 from abc import ABCMeta, abstractmethod
 
 
-class BaseLR():
+class BaseLR:
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def get_lr(self, cur_iter): pass
+    def get_lr(self, cur_iter):
+        pass
 
 
 class MultiStageLR(BaseLR):
     def __init__(self, lr_stages):
-        assert type(lr_stages) in [list, tuple] and len(lr_stages[0]) == 2, \
-            'lr_stages must be list or tuple, with [iters, lr] format'
+        assert (
+            type(lr_stages) in [list, tuple] and len(lr_stages[0]) == 2
+        ), 'lr_stages must be list or tuple, with [iters, lr] format'
         self._lr_stagess = lr_stages
 
     def get_lr(self, epoch):
@@ -38,7 +40,7 @@ class LinearIncreaseLR(BaseLR):
 
 if __name__ == '__main__':
     lr = LinearIncreaseLR(0.00001, 0.1, 5)
-    from IPython import embed;
+    from IPython import embed
 
     embed()
     print(lr._delta_lr)

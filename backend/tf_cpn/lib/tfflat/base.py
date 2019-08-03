@@ -14,8 +14,10 @@ from .timer import Timer
 from .logger import colorlogger
 from .utils import approx_equal
 
+
 class ModelDesc(object):
     __metaclass__ = abc.ABCMeta
+
     def __init__(self):
         self._loss = None
         self._inputs = []
@@ -56,22 +58,25 @@ class ModelDesc(object):
         return self._outputs
 
     def add_tower_summary(self, name, vars, reduced_method='mean'):
-        assert reduced_method == 'mean' or reduced_method == 'sum', \
-            "Summary tensor only supports sum- or mean- reduced method"
+        assert (
+            reduced_method == 'mean' or reduced_method == 'sum'
+        ), "Summary tensor only supports sum- or mean- reduced method"
         if isinstance(vars, list):
             for v in vars:
                 if vars.get_shape() == None:
                     print('Summary tensor {} got an unknown shape.'.format(name))
                 else:
-                    assert v.get_shape().as_list() == [], \
-                        "Summary tensor only supports scalar but got {}".format(v.get_shape().as_list())
+                    assert (
+                        v.get_shape().as_list() == []
+                    ), "Summary tensor only supports scalar but got {}".format(v.get_shape().as_list())
                 tf.add_to_collection(name, v)
         else:
             if vars.get_shape() == None:
                 print('Summary tensor {} got an unknown shape.'.format(name))
             else:
-                assert vars.get_shape().as_list() == [], \
-                    "Summary tensor only supports scalar but got {}".format(vars.get_shape().as_list())
+                assert (
+                    vars.get_shape().as_list() == []
+                ), "Summary tensor only supports scalar but got {}".format(vars.get_shape().as_list())
             tf.add_to_collection(name, vars)
         self._tower_summary.append([name, reduced_method])
 
@@ -82,6 +87,7 @@ class ModelDesc(object):
     @abc.abstractmethod
     def make_data(self):
         pass
+
 
 class Base(object):
     __metaclass__ = abc.ABCMeta
@@ -139,7 +145,7 @@ class Base(object):
             self.graph_ops = self._make_graph()
             if not isinstance(self.graph_ops, list) and not isinstance(self.graph_ops, tuple):
                 self.graph_ops = [self.graph_ops]
-        self.summary_dict.update( get_tower_summary_dict(self.net._tower_summary) )
+        self.summary_dict.update(get_tower_summary_dict(self.net._tower_summary))
 
     def load_weights(self, model=None):
         if model == 'last_epoch':
@@ -159,7 +165,7 @@ class Base(object):
             self.logger.info('Initialized model weights from {} ...'.format(model))
             load_model(self.sess, model)
             if model.split('/')[-1].startswith('snapshot_'):
-                self.cur_epoch = int(model[model.find('snapshot_')+9:model.find('.ckpt')])
+                self.cur_epoch = int(model[model.find('snapshot_') + 9 : model.find('.ckpt')])
                 self.logger.info('Current epoch is %d.' % self.cur_epoch)
         else:
             self.logger.critical('Load nothing. There is no model in path {}.'.format(model))
@@ -177,6 +183,7 @@ class Base(object):
                 else:
                     feed_dict[inp] = blobs[i].reshape(*inp_shape)
         return feed_dict
+
 
 class Trainer(Base):
     def __init__(self, net, cfg, data_iter=None):
@@ -196,7 +203,7 @@ class Trainer(Base):
         self.logger.info("Generating training graph on {} GPUs ...".format(self.cfg.nr_gpus))
 
         weights_initializer = slim.xavier_initializer()
-        biases_initializer = tf.constant_initializer(0.)
+        biases_initializer = tf.constant_initializer(0.0)
         biases_regularizer = tf.no_regularizer
         weights_regularizer = tf.contrib.layers.l2_regularizer(self.cfg.weight_decay)
 
@@ -207,20 +214,26 @@ class Trainer(Base):
                     with tf.name_scope('tower_%d' % i) as name_scope:
                         # Force all Variables to reside on the CPU.
                         with slim.arg_scope([slim.model_variable, slim.variable], device='/device:CPU:0'):
-                            with slim.arg_scope([slim.conv2d, slim.conv2d_in_plane, \
-                                                 slim.conv2d_transpose, slim.separable_conv2d,
-                                                 slim.fully_connected],
-                                                weights_regularizer=weights_regularizer,
-                                                biases_regularizer=biases_regularizer,
-                                                weights_initializer=weights_initializer,
-                                                biases_initializer=biases_initializer):
+                            with slim.arg_scope(
+                                [
+                                    slim.conv2d,
+                                    slim.conv2d_in_plane,
+                                    slim.conv2d_transpose,
+                                    slim.separable_conv2d,
+                                    slim.fully_connected,
+                                ],
+                                weights_regularizer=weights_regularizer,
+                                biases_regularizer=biases_regularizer,
+                                weights_initializer=weights_initializer,
+                                biases_initializer=biases_initializer,
+                            ):
                                 # loss over single GPU
                                 self.net.make_network(is_train=True)
                                 if i == self.cfg.nr_gpus - 1:
                                     loss = self.net.get_loss(include_wd=True)
                                 else:
                                     loss = self.net.get_loss()
-                                self._input_list.append( self.net.get_inputs() )
+                                self._input_list.append(self.net.get_inputs())
 
                         tf.get_variable_scope().reuse_variables()
 
@@ -235,10 +248,10 @@ class Trainer(Base):
                         final_grads = []
                         with tf.variable_scope('Gradient_Mult') as scope:
                             for grad, var in grads:
-                                scale = 1.
+                                scale = 1.0
                                 if self.cfg.double_bias and '/biases:' in var.name:
-                                    scale *= 2.
-                                if not np.allclose(scale, 1.):
+                                    scale *= 2.0
+                                if not np.allclose(scale, 1.0):
                                     grad = tf.multiply(grad, scale)
                                 final_grads.append((grad, var))
                         tower_grads.append(final_grads)
@@ -250,7 +263,7 @@ class Trainer(Base):
 
         if False:
             variable_averages = tf.train.ExponentialMovingAverage(0.9999)
-            variables_to_average = (tf.trainable_variables() + tf.moving_average_variables())
+            variables_to_average = tf.trainable_variables() + tf.moving_average_variables()
             variables_averages_op = variable_averages.apply(variables_to_average)
 
             apply_gradient_op = self._optimizer.apply_gradients(grads)
@@ -282,11 +295,11 @@ class Trainer(Base):
 
         self.logger.info('Start training ...')
         start_itr = self.cur_epoch * self.cfg.epoch_size + 1
-        nr_itrs = self.cfg.nr_gpus*self.cfg.batch_size
+        nr_itrs = self.cfg.nr_gpus * self.cfg.batch_size
         for itr in range(start_itr, self.cfg.max_itr + nr_itrs, nr_itrs):
             self.global_timer.tic()
 
-            itrs = np.arange(itr, itr+nr_itrs)
+            itrs = np.arange(itr, itr + nr_itrs)
             self.cur_epoch = itrs[-1] // self.cfg.epoch_size
 
             setproctitle.setproctitle('train ' + self.cfg.proj_name + ' epoch:' + str(self.cur_epoch))
@@ -305,7 +318,8 @@ class Trainer(Base):
             # train one step
             self.timer.tic()
             _, self.lr_eval, *summary_res = self.sess.run(
-                [self.graph_ops[0], self.lr, *self.summary_dict.values()], feed_dict=feed_dict)
+                [self.graph_ops[0], self.lr, *self.summary_dict.values()], feed_dict=feed_dict
+            )
             self.timer.toc()
 
             iter_summary = dict()
@@ -315,13 +329,13 @@ class Trainer(Base):
             screen = [
                 'Epoch %d itr %d/%d:' % (self.cur_epoch, itrs[-1], self.cfg.epoch_size),
                 'lr: %g' % (self.lr_eval),
-                'speed: %.2f(%.2fs r%.2f)s/itr' % (
-                    self.global_timer.average_time, self.timer.average_time, self.read_timer.average_time),
-                '%.2fh/epoch' % (self.global_timer.average_time / 3600. * self.cfg.epoch_size / nr_itrs),
+                'speed: %.2f(%.2fs r%.2f)s/itr'
+                % (self.global_timer.average_time, self.timer.average_time, self.read_timer.average_time),
+                '%.2fh/epoch' % (self.global_timer.average_time / 3600.0 * self.cfg.epoch_size / nr_itrs),
                 ' '.join(map(lambda x: '%s: %.4f' % (x[0], x[1]), iter_summary.items())),
             ]
 
-            #TODO(display stall?)
+            # TODO(display stall?)
             if np.any(itrs % (self.cfg.display) == 0):
                 self.logger.info(' '.join(screen))
 
@@ -329,6 +343,7 @@ class Trainer(Base):
                 train_saver.save_model(self.cur_epoch)
 
             self.global_timer.toc()
+
 
 class Tester(Base):
     def __init__(self, net, cfg, data_iter=None):
@@ -348,7 +363,9 @@ class Tester(Base):
                     else:
                         feed_dict[inp] = blobs[i].reshape(*inp_shape)
         else:
-            assert isinstance(batch_data, list) or isinstance(batch_data, tuple), "Input data should be list-type."
+            assert isinstance(batch_data, list) or isinstance(
+                batch_data, tuple
+            ), "Input data should be list-type."
             assert len(batch_data) == len(self._input_list[0]), "Input data is incomplete."
 
             batch_size = self.cfg.batch_size
@@ -359,21 +376,29 @@ class Tester(Base):
                     total_batches = batch_size * self.cfg.nr_gpus
                     left_batches = total_batches - len(batch_data[i])
                     if left_batches > 0:
-                        batch_data[i] = np.append(batch_data[i], np.zeros((left_batches, *batch_data[i].shape[1:])), axis=0)
-                        self.logger.warning("Fill some blanks to fit batch_size which wastes %d%% computation" % (
-                            left_batches * 100. / total_batches))
+                        batch_data[i] = np.append(
+                            batch_data[i], np.zeros((left_batches, *batch_data[i].shape[1:])), axis=0
+                        )
+                        self.logger.warning(
+                            "Fill some blanks to fit batch_size which wastes %d%% computation"
+                            % (left_batches * 100.0 / total_batches)
+                        )
                 if batch_size > self.cfg.batch_size:
-                    self.logger.warning("Current batch_size %d is larger then config batch_size %d." % (batch_size, self.cfg.batch_size))
+                    self.logger.warning(
+                        "Current batch_size %d is larger then config batch_size %d."
+                        % (batch_size, self.cfg.batch_size)
+                    )
             else:
-                assert self.cfg.batch_size * self.cfg.nr_gpus == len(batch_data[0]), \
-                    "Input batch doesn't fit placeholder batch."
+                assert self.cfg.batch_size * self.cfg.nr_gpus == len(
+                    batch_data[0]
+                ), "Input batch doesn't fit placeholder batch."
 
             for j, inputs in enumerate(self._input_list):
                 for i, inp in enumerate(inputs):
-                    feed_dict[ inp ] = batch_data[i][j * batch_size: (j+1) * batch_size]
+                    feed_dict[inp] = batch_data[i][j * batch_size : (j + 1) * batch_size]
 
-            #@TODO(delete)
-            assert (j+1) * batch_size == len(batch_data[0]), 'check batch'
+            # @TODO(delete)
+            assert (j + 1) * batch_size == len(batch_data[0]), 'check batch'
         return feed_dict, batch_size
 
     def _make_graph(self):
@@ -420,7 +445,7 @@ class Tester(Base):
 
         if data is not None and len(data[0]) < self.cfg.nr_gpus * batch_size:
             for i in range(len(res)):
-                res[i] = res[i][:len(data[0])]
+                res[i] = res[i][: len(data[0])]
 
         return res
 

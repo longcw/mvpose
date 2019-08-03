@@ -14,8 +14,9 @@ import tensorflow as tf
 from config import cfg
 
 
-def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride,
-                   anchors, num_anchors, is_tfchannel=False):
+def proposal_layer(
+    rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride, anchors, num_anchors, is_tfchannel=False
+):
     """A simplified version compared to fast/er RCNN
        For details please see the technical report
     """
@@ -40,8 +41,7 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride,
         scores = rpn_cls_prob[:, :, :, num_anchors:]
     rpn_bbox_pred = rpn_bbox_pred.reshape((-1, 4))
     # if cfg_key == 'TRAIN' and 'RPN_NORMALIZE_TARGETS' in cfg.TRAIN.keys() \
-    if 'RPN_NORMALIZE_TARGETS' in cfg.TRAIN.keys() \
-            and cfg.TRAIN.RPN_NORMALIZE_TARGETS:
+    if 'RPN_NORMALIZE_TARGETS' in cfg.TRAIN.keys() and cfg.TRAIN.RPN_NORMALIZE_TARGETS:
         rpn_bbox_pred *= cfg.TRAIN.RPN_NORMALIZE_STDS
         rpn_bbox_pred += cfg.TRAIN.RPN_NORMALIZE_MEANS
 
@@ -85,9 +85,9 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride,
     return blob, scores.flatten()
 
 
-def proposal_without_nms_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key,
-                               feat_stride, anchors, num_anchors,
-                               is_tfchannel=False):
+def proposal_without_nms_layer(
+    rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, feat_stride, anchors, num_anchors, is_tfchannel=False
+):
     if type(cfg_key) == bytes:
         cfg_key = cfg_key.decode('utf-8')
 
@@ -104,8 +104,7 @@ def proposal_without_nms_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key,
         scores = rpn_cls_prob[:, :, :, num_anchors:]
     rpn_bbox_pred = rpn_bbox_pred.reshape((-1, 4))
 
-    if 'RPN_NORMALIZE_TARGETS' in cfg.TRAIN.keys() \
-            and cfg.TRAIN.RPN_NORMALIZE_TARGETS:
+    if 'RPN_NORMALIZE_TARGETS' in cfg.TRAIN.keys() and cfg.TRAIN.RPN_NORMALIZE_TARGETS:
         rpn_bbox_pred *= cfg.TRAIN.RPN_NORMALIZE_STDS
         rpn_bbox_pred += cfg.TRAIN.RPN_NORMALIZE_MEANS
 

@@ -7,8 +7,7 @@ import torchvision
 import pdb
 
 
-__all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
-           'resnet152']
+__all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152']
 
 
 class ResNet(nn.Module):
@@ -20,8 +19,16 @@ class ResNet(nn.Module):
         152: torchvision.models.resnet152,
     }
 
-    def __init__(self, depth, pretrained=True, cut_at_pooling=False,
-                 num_features=0, norm=False, dropout=0, num_classes=0):
+    def __init__(
+        self,
+        depth,
+        pretrained=True,
+        cut_at_pooling=False,
+        num_features=0,
+        norm=False,
+        dropout=0,
+        num_classes=0,
+    ):
         super(ResNet, self).__init__()
 
         self.depth = depth

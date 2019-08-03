@@ -6,8 +6,7 @@
 
 from IPython import embed
 from light_config import cfg
-from detection_opr.box_utils.bbox_transform_opr import bbox_transform_inv, \
-    clip_boxes
+from detection_opr.box_utils.bbox_transform_opr import bbox_transform_inv, clip_boxes
 
 import tensorflow as tf
 import numpy as np
@@ -22,8 +21,16 @@ def filter_boxes(boxes, min_size):
 
 
 def proposal_opr(
-        rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride, anchors,
-        num_anchors, is_tfchannel=False, is_tfnms=False):
+    rpn_cls_prob,
+    rpn_bbox_pred,
+    im_info,
+    cfg_key,
+    _feat_stride,
+    anchors,
+    num_anchors,
+    is_tfchannel=False,
+    is_tfnms=False,
+):
     """ Proposal_layer with tensors
     """
     if type(cfg_key) == bytes:
@@ -46,11 +53,11 @@ def proposal_opr(
         rpn_bbox_pred = tf.reshape(rpn_bbox_pred, (batch, -1, 4))
     else:
         from IPython import embed
+
         print("other channel type not implemented")
         embed()
 
-    if 'RPN_NORMALIZE_TARGETS' in cfg.TRAIN.keys() \
-            and cfg.TRAIN.RPN_NORMALIZE_TARGETS:
+    if 'RPN_NORMALIZE_TARGETS' in cfg.TRAIN.keys() and cfg.TRAIN.RPN_NORMALIZE_TARGETS:
         rpn_bbox_pred *= cfg.TRAIN.RPN_NORMALIZE_STDS
         rpn_bbox_pred += cfg.TRAIN.RPN_NORMALIZE_MEANS
 
@@ -86,13 +93,12 @@ def proposal_opr(
 
         if is_tfnms:
             tf_proposals = cur_proposals + np.array([0, 0, 1, 1])
-            keep = tf.image.non_max_suppression(
-                tf_proposals, cur_scores, post_nms_topN, nms_thresh)
+            keep = tf.image.non_max_suppression(tf_proposals, cur_scores, post_nms_topN, nms_thresh)
         else:
             from lib_kernel.lib_fast_nms import nms_op
-            keep, keep_num, mask, _ = nms_op.nms(
-                cur_proposals, nms_thresh, post_nms_topN)
-            keep = keep[:keep_num[0]]
+
+            keep, keep_num, mask, _ = nms_op.nms(cur_proposals, nms_thresh, post_nms_topN)
+            keep = keep[: keep_num[0]]
 
         cur_proposals = tf.gather(cur_proposals, keep, axis=0)
         cur_scores = tf.gather(cur_scores, keep, axis=0)
@@ -106,7 +112,9 @@ def proposal_opr(
     final_scores = tf.concat(batch_scores, axis=0)
     return final_proposals, final_scores
 
+
 def debug_single(x, y):
     from IPython import embed
+
     embed()
     return True

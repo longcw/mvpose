@@ -11,6 +11,7 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from IPython import embed
 
+
 def cocoval(detected_json):
     eval_json = config.eval_json
     eval_gt = COCO(eval_json)
@@ -22,6 +23,7 @@ def cocoval(detected_json):
     cocoEval.evaluate()
     cocoEval.accumulate()
     cocoEval.summarize()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

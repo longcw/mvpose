@@ -8,6 +8,7 @@ from IPython import embed
 import tensorflow as tf
 import numpy as np
 
+
 def _debug_single(x):
     print(x.shape)
     np.save('/tmp/x', x)

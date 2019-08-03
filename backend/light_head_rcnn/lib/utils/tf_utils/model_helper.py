@@ -16,11 +16,7 @@ def get_variables_in_checkpoint_file(file_name):
     except Exception as e:  # pylint: disable=broad-except
         print(str(e))
         if "corrupted compressed block contents" in str(e):
-            print(
-                "It's likely that your checkpoint file has been compressed "
-                "with SNAPPY.")
-
-
+            print("It's likely that your checkpoint file has been compressed " "with SNAPPY.")
 
 
 def average_gradients(tower_grads):

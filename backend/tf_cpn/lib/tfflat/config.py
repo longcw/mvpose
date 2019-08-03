@@ -3,10 +3,11 @@
 import os
 import os.path as osp
 import sys
+
 sys.setrecursionlimit(10000)
 
-class ConfigBase(object):
 
+class ConfigBase(object):
     def __init__(self, username, lr, optimizer):
         self.username = username
 

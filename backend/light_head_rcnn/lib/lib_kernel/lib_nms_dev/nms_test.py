@@ -8,13 +8,11 @@ os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 
 # pdb.set_trace()
 
-rois = tf.convert_to_tensor(
-    [[0, 1, 2, 3, 4], [1, 2, 3, 4, 4], [2, 3, 4, 5, 2]],
-    dtype=tf.float32)
+rois = tf.convert_to_tensor([[0, 1, 2, 3, 4], [1, 2, 3, 4, 4], [2, 3, 4, 5, 2]], dtype=tf.float32)
 
 nms_out = nms_op.nms(rois, 0.1, 3)
 
-hehe = nms_out[0][0:nms_out[1][0]]
+hehe = nms_out[0][0 : nms_out[1][0]]
 # keep_out = nms_out[0][:nms_out[1]]
 
 # hh= tf.transpose(hh, [0, 3, 1, 2])
@@ -28,4 +26,4 @@ sess = tf.Session(config=tf.ConfigProto(log_device_placement=False))
 
 print(sess.run(rois))
 print("-------")
-print(sess.run( nms_out))
+print(sess.run(nms_out))

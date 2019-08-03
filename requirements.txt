@@ -16,3 +16,4 @@ matplotlib==2.0.2
 visdom==0.1.8.8
 Cython==0.29.6
 ipython
+sklearn

@@ -18,8 +18,7 @@ import sys, os, pprint, time, glob, argparse, logging, setproctitle, numpy as np
 
 from utils.dpflow.data_provider import DataFromList, MultiProcessMapDataZMQ
 from utils.dpflow.prefetching_iter import PrefetchingIter
-from utils.tf_utils.model_helper import average_gradients, sum_gradients, \
-    get_variables_in_checkpoint_file
+from utils.tf_utils.model_helper import average_gradients, sum_gradients, get_variables_in_checkpoint_file
 
 from tqdm import tqdm
 from utils.py_utils import QuickLogger, misc
@@ -42,8 +41,7 @@ def get_data_flow():
         files = f.readlines()
 
     data = DataFromList(files)
-    dp = MultiProcessMapDataZMQ(
-        data, cfg.nr_dataflow, dataset.get_data_for_singlegpu)
+    dp = MultiProcessMapDataZMQ(data, cfg.nr_dataflow, dataset.get_data_for_singlegpu)
     dp.reset_state()
     dataiter = dp.get_data()
     return dataiter
@@ -60,11 +58,10 @@ def train(args):
 
     with tf.Graph().as_default(), tf.device('/device:CPU:0'):
         global_step = tf.get_variable(
-            'global_step', [], initializer=tf.constant_initializer(0.),
-            trainable=False)
+            'global_step', [], initializer=tf.constant_initializer(0.0), trainable=False
+        )
 
-        tfconfig = tf.ConfigProto(
-            allow_soft_placement=True, log_device_placement=False)
+        tfconfig = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
         tfconfig.gpu_options.allow_growth = True
         sess = tf.Session(config=tfconfig)
         tf.set_random_seed(cfg.rng_seed)
@@ -82,8 +79,7 @@ def train(args):
         get_op_list = []
         for i in range(num_gpu):
             with tf.device("/GPU:%s" % i):
-                area = tf.contrib.staging.StagingArea(
-                    dtypes=[tf.float32 for _ in range(len(inputs_list[0]))])
+                area = tf.contrib.staging.StagingArea(dtypes=[tf.float32 for _ in range(len(inputs_list[0]))])
                 put_op_list.append(area.put(inputs_list[i]))
                 get_op_list.append(area.get())
         coord = tf.train.Coordinator()
@@ -101,24 +97,26 @@ def train(args):
             for i in range(num_gpu):
                 with tf.device('/gpu:%d' % i):
                     with tf.name_scope('tower_%d' % i):
-                        with slim.arg_scope(
-                                [slim.model_variable, slim.variable],
-                                device='/device:CPU:0'):
+                        with slim.arg_scope([slim.model_variable, slim.variable], device='/device:CPU:0'):
                             with slim.arg_scope(
-                                    [slim.conv2d, slim.conv2d_in_plane,
-                                     slim.conv2d_transpose,
-                                     slim.separable_conv2d,
-                                     slim.fully_connected],
-                                    weights_regularizer=weights_regularizer,
-                                    biases_regularizer=biases_regularizer,
-                                    biases_initializer=biases_ini):
+                                [
+                                    slim.conv2d,
+                                    slim.conv2d_in_plane,
+                                    slim.conv2d_transpose,
+                                    slim.separable_conv2d,
+                                    slim.fully_connected,
+                                ],
+                                weights_regularizer=weights_regularizer,
+                                biases_regularizer=biases_regularizer,
+                                biases_initializer=biases_ini,
+                            ):
                                 loss = net.inference('TRAIN', get_op_list[i])
                                 loss = loss / num_gpu
                                 if i == num_gpu - 1:
                                     regularization_losses = tf.get_collection(
-                                        tf.GraphKeys.REGULARIZATION_LOSSES)
-                                    loss = loss + tf.add_n(
-                                        regularization_losses)
+                                        tf.GraphKeys.REGULARIZATION_LOSSES
+                                    )
+                                    loss = loss + tf.add_n(regularization_losses)
 
                         tf.get_variable_scope().reuse_variables()
                         grads = opt.compute_gradients(loss)
@@ -132,21 +130,18 @@ def train(args):
         final_gvs = []
         with tf.variable_scope('Gradient_Mult'):
             for grad, var in grads:
-                scale = 1.
+                scale = 1.0
                 # if '/biases:' in var.name:
                 #    scale *= 2.
                 if 'conv_new' in var.name:
-                    scale *= 3.
+                    scale *= 3.0
                 if not np.allclose(scale, 1.0):
                     grad = tf.multiply(grad, scale)
                 final_gvs.append((grad, var))
-        apply_gradient_op = opt.apply_gradients(
-            final_gvs, global_step=global_step)
+        apply_gradient_op = opt.apply_gradients(final_gvs, global_step=global_step)
 
-        variable_averages = tf.train.ExponentialMovingAverage(
-            0.9999, global_step)
-        variables_averages_op = variable_averages.apply(
-            tf.trainable_variables())
+        variable_averages = tf.train.ExponentialMovingAverage(0.9999, global_step)
+        variables_averages_op = variable_averages.apply(tf.trainable_variables())
 
         train_op = tf.group(apply_gradient_op, variables_averages_op)
         # apply_gradient_op = opt.apply_gradients(grads)
@@ -213,16 +208,13 @@ def train(args):
 
                     print_str = 'iter %d, ' % (iter)
                     for idx_key, iter_key in enumerate(train_collection.keys()):
-                        print_str += iter_key + ': %.4f, ' % sess_ret[
-                            idx_key + 2]
+                        print_str += iter_key + ': %.4f, ' % sess_ret[idx_key + 2]
 
-                    print_str += 'lr: %.4f, speed: %.3fs/iter' % \
-                                 (cur_lr, timer.average_time)
+                    print_str += 'lr: %.4f, speed: %.3fs/iter' % (cur_lr, timer.average_time)
                     logger.info(print_str)
                     pbar.set_description(print_str)
 
-            pbar = tqdm(range(1, cfg.nr_image_per_epoch // \
-                              (num_gpu * cfg.train_batch_per_gpu) + 1))
+            pbar = tqdm(range(1, cfg.nr_image_per_epoch // (num_gpu * cfg.train_batch_per_gpu) + 1))
             cur_lr = cfg.get_lr(epoch) * num_gpu
             sess.run(update_lr_op, {lr_placeholder: cur_lr})
             logger.info("epoch: %d" % epoch)
@@ -243,8 +235,7 @@ def train(args):
                 for idx_key, iter_key in enumerate(train_collection.keys()):
                     print_str += iter_key + ': %.4f, ' % sess_ret[idx_key + 2]
 
-                print_str += 'lr: %.4f, speed: %.3fs/iter' % \
-                             (cur_lr, timer.average_time)
+                print_str += 'lr: %.4f, speed: %.3fs/iter' % (cur_lr, timer.average_time)
                 logger.info(print_str)
                 pbar.set_description(print_str)
 
@@ -255,8 +246,7 @@ def train(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('test network')
-    parser.add_argument(
-        '-d', '--devices', default='0', type=str, help='device for training')
+    parser.add_argument('-d', '--devices', default='0', type=str, help='device for training')
     args = parser.parse_args()
     args.devices = misc.parse_devices(args.devices)
     os.environ["CUDA_VISIBLE_DEVICES"] = args.devices
