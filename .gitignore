@@ -1,3 +1,5 @@
+src/m_lib/pictorial.c
+
 result/
 
 # numpy dump
@@ -5,7 +7,7 @@ result/
 # nohup
 nohup.out
 # pyCharm
-./idea
+.idea
 
 # datasets
 /datasets
