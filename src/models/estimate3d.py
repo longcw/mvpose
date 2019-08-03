@@ -36,10 +36,15 @@ from src.m_lib import pictorial
 
 class MultiEstimator(object):
     def __init__(self, cfg, debug=False):
-        self.est2d = Estimator_2d(DEBUGGING=debug)
+        self.debug = debug
+        self.est2d = None
+
         self.extractor = FeatureExtractor()
         self.cfg = cfg
         self.dataset = None
+
+    def init_est2d(self):
+        self.est2d = Estimator_2d(DEBUGGING=self.debug)
 
     def predict(self, imgs, camera_parameter, template_name='Shelf', show=False, plt_id=0):
         info_dict = self._infer_single2d(imgs)
@@ -49,6 +54,9 @@ class MultiEstimator(object):
         return self._estimate3d(0, show=show, plt_id=plt_id)
 
     def _infer_single2d(self, imgs, img_id=0, dir='/home/jiangwen/tmp/Multi'):
+        if self.est2d is None:
+            self.init_est2d()
+
         info_dict = dict()
         for cam_id, img in enumerate(imgs):
             results = self.est2d.estimate_2d(img, img_id)

@@ -88,13 +88,13 @@ if __name__ == '__main__':
 
         # using preprocessed 2D poses or using CPN to predict 2D pose
         if args.dumped_dir:
-            test_dataset = PreprocessedDataset(args.dumped_dir[dataset_idx])
+            test_dataset = PreprocessedDataset(args.dumped_dir[dataset_idx], 100, 5)
             logger.info(f"Using pre-processed datasets {args.dumped_dir[dataset_idx]} for quicker evaluation")
         else:
 
             test_dataset = BaseDataset(dataset_path, test_range)
 
-        test_loader = DataLoader(test_dataset, batch_size=1, pin_memory=True, num_workers=6, shuffle=False)
+        test_loader = DataLoader(test_dataset, batch_size=1, pin_memory=True, num_workers=0, shuffle=False)
         pose_in_range = export(test_model, test_loader, is_info_dicts=bool(args.dumped_dir), show=True)
         if not os.path.isdir(os.path.join(model_cfg.root_dir, 'result')):
             os.makedirs(os.path.join(model_cfg.root_dir, 'result'))
