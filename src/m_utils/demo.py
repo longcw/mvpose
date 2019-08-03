@@ -96,6 +96,8 @@ if __name__ == '__main__':
 
         test_loader = DataLoader(test_dataset, batch_size=1, pin_memory=True, num_workers=6, shuffle=False)
         pose_in_range = export(test_model, test_loader, is_info_dicts=bool(args.dumped_dir), show=True)
+        if not os.path.isdir(os.path.join(model_cfg.root_dir, 'result')):
+            os.makedirs(os.path.join(model_cfg.root_dir, 'result'))
         with open(
             osp.join(
                 model_cfg.root_dir,
