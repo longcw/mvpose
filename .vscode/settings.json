@@ -1,0 +1,17 @@
+{
+    "files.exclude": {
+        "datasets": true
+    },
+    "sync-rsync.remote": "longc@cc.longc.xyz:/extra/code/mvpose",
+    "sync-rsync.args": [
+        "-e",
+        "ssh -i ~/.ssh/id_rsa -p 2222"
+    ],
+    "sync-rsync.exclude": [
+        ".git",
+        ".vscode",
+        ".idea",
+        "*.pyc",
+        "*/__pycache__",
+    ],
+}
