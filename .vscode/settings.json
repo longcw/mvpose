@@ -15,4 +15,5 @@
         "*.pyc",
         "*/__pycache__",
     ],
+    "python.formatting.provider": "black",
 }

@@ -65,6 +65,7 @@ class PreprocessedDataset(Dataset):
             info_dict['image_data'] = np.load(osp.join(dump_dir, info_dict['image_path']))
 
             for pid, person in enumerate(info_dict[0]):
-                person['heatmap_data'] = np.load(osp.join(dump_dir, person['heatmap_path']))
-                person['cropped_img'] = np.load(osp.join(dump_dir, person['cropped_path']))
+                person.update(np.load(osp.join(dump_dir, person["data_path"])))
+                # person['heatmap_data'] = np.load(osp.join(dump_dir, person['heatmap_path']))
+                # person['cropped_img'] = np.load(osp.join(dump_dir, person['cropped_path']))
         return info_dicts

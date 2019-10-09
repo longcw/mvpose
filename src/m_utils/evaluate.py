@@ -201,7 +201,7 @@ if __name__ == '__main__':
             test_dataset = PreprocessedDataset(args.dumped_dir[dataset_idx])
             logger.info(f"Using pre-processed datasets {args.dumped_dir[dataset_idx]} for quicker evaluation")
             test_loader = DataLoader(
-                test_dataset, batch_size=1, pin_memory=True, num_workers=6, shuffle=False
+                test_dataset, batch_size=1, pin_memory=False, num_workers=6, shuffle=False
             )
         else:
             test_dataset = BaseDataset(dataset_path, test_range)
