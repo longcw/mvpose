@@ -12,7 +12,7 @@ import cv2
 class BaseDataset(Dataset):
     def __init__(self, dataset_dir, range_):
         abs_dataset_dir = osp.abspath(dataset_dir)
-        cam_dirs = [i for i in sorted(glob(osp.join(abs_dataset_dir, '*/'))) if re.search(r'\d+/$', i)]
+        cam_dirs = [i for i in sorted(glob(osp.join(abs_dataset_dir, 'frames', '*/'))) if re.search(r'\d+/$', i)]
         self.infos = OrderedDict()
         for cam_idx, cam_dir in enumerate(cam_dirs):
             cam_id = int(re.search(r'\d+/$', cam_dir).group().strip('/'))

@@ -1,0 +1,6 @@
+{
+    "files.exclude": {
+        "datasets": true
+    },
+    "python.pythonPath": "/home/longc/anaconda3/envs/mvpose/bin/python"
+}
