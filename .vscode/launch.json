@@ -19,7 +19,8 @@
             "program": "${workspaceFolder}/src/m_utils/evaluate.py",
             "args": [
                 "-d", "Campus", 
-                "-dumped", "datasets/Processed/Campus_processed"
+                "-dumped", "datasets/Processed/Campus_processed",
+                "-workers", "0"
             ],
             "console": "integratedTerminal"
         },

@@ -1,7 +1,7 @@
 import os
 import sys
 import os.path as osp
-import pickle
+import json
 import coloredlogs, logging
 
 logger = logging.getLogger(__name__)
@@ -14,62 +14,47 @@ from src.m_utils.base_dataset import BaseDataset
 from src.models.estimate3d import MultiEstimator
 
 
-# from src.models.multiestimator import MultiEstimator\
+def dump_mem(model, loader, dump_dir):
+    camera_ids = loader.dataset.camera_ids
+    n_frames = len(loader.dataset)
+    data = {
+        "n_targets": -1,
+        "n_frames": n_frames,
+        "n_cameras": len(camera_ids),
+        "gts_3d": {
+            camera_id: [[] for _ in range(n_frames)] for camera_id in camera_ids
+        },
+        "gts_2d": {
+            camera_id: [[] for _ in range(n_frames)] for camera_id in camera_ids
+        },  # to fit the format of ground truth
+    }
 
-
-def dump_mem(model, range_, loader, dump_dir):
-    num_len = int(np.log10(range_[-1]) + 1)
-    for idx, imgs in enumerate(tqdm(loader)):
+    for fid, (imgs, image_names) in enumerate(tqdm(loader)):
         # poses3d = model.estimate3d ( img_id=img_id, show=False )
-        img_id = range_[idx]
-        this_imgs = list()
-        for img_batch in imgs:
-            this_imgs.append(img_batch.squeeze().numpy())
+        # inference
+        this_imgs = [img_batch.squeeze().numpy() for img_batch in imgs]
         info_dicts = model._infer_single2d(imgs=this_imgs)
-        for cam_id, info_dict in info_dicts.items():
-            path2save = osp.join(
-                dump_dir, f"{img_id:0{num_len}d}.{cam_id}.image_data.npy"
-            )
 
-            np.save(path2save, info_dict.pop("image_data"))
-            info_dict["image_path"] = osp.relpath(path2save, dump_dir)
-            for pid, person in enumerate(info_dict[0]):
-                person["data_path"] = osp.relpath(
-                    osp.join(dump_dir, f"{img_id:0{num_len}d}.{cam_id}.{pid}.npz"),
-                    dump_dir,
-                )
-                np.savez_compressed(
-                    osp.join(dump_dir, person["data_path"]),
-                    heatmap_data=person.pop("heatmap_data"),
-                    cropped_img=person.pop("cropped_img"),
-                )
+        for image_name, (camera_id, info_dict) in zip(image_names, info_dicts.items()):
+            # json_name = os.path.splitext(image_name[0])[0] + ".json"
+            # path2save = osp.join(dump_dir, json_name)
+            # os.makedirs(os.path.dirname(path2save), exist_ok=True)
 
-                # person["heatmap_path"] = osp.relpath(
-                #     osp.join(
-                #         dump_dir,
-                #         f"{img_id:0{num_len}d}.{cam_id}.{pid}.heatmap_data.npy",
-                #     ),
-                #     dump_dir,
-                # )
-                # np.save(
-                #     osp.join(dump_dir, person["heatmap_path"]),
-                #     person.pop("heatmap_data"),
-                # )
-                # person["cropped_path"] = osp.relpath(
-                #     osp.join(
-                #         dump_dir, f"{img_id:0{num_len}d}.{cam_id}.{pid}.cropped_img.npy"
-                #     ),
-                #     dump_dir,
-                # )
-                # np.save(
-                #     osp.join(dump_dir, person["cropped_path"]),
-                #     person.pop("cropped_img"),
-                # )
+            # generate dummy detections
+            detections = info_dict[0]  # person_id -> {pose2d, bbox}
+            for det in detections:
+                pose2d = np.asarray(det["pose2d"], dtype=float).reshape(-1, 3)
+                person = {
+                    "id": -1,
+                    "camera": camera_id,
+                    "frame": fid,
+                    "points_2d": pose2d[:, 0:2].tolist(),
+                    "scores": pose2d[:, 2].tolist(),
+                }
+                data["gts_2d"][camera_id][fid].append(person)
 
-        with open(
-            osp.join(dump_dir, f"{img_id:0{num_len}d}.info_dicts.pickle"), "wb"
-        ) as f:
-            pickle.dump(info_dicts, f)
+    with open(osp.join(dump_dir, "mvpose_detections.json"), "w") as f:
+        json.dump(data, f)
 
 
 if __name__ == "__main__":
@@ -79,7 +64,6 @@ if __name__ == "__main__":
         description="Usage: python preprocess.py -d Shelf Campus Panoptic [-dump_dir ./datasets]"
     )
     parser.add_argument("-d", nargs="+", dest="datasets")
-    parser.add_argument("-dump_dir", type=str, default="/tmp/mvpose/processed", dest="dump_dir")
     parser.add_argument("-workers", type=int, default=4, dest="workers")
     args = parser.parse_args()
 
@@ -94,40 +78,33 @@ if __name__ == "__main__":
         # template = load_template ( template_mat )
         if dataset_name == "Shelf":
             dataset_path = model_cfg.shelf_path
-            test_range = range(300, 600)
             gt_path = dataset_path
 
         elif dataset_name == "Campus":
             dataset_path = model_cfg.campus_path
-            test_range = [i for i in range(350, 471)] + [i for i in range(650, 751)]
             gt_path = dataset_path
 
         elif dataset_name == "Panoptic":
             dataset_path = model_cfg.panoptic_ultimatum_path
-            test_range = range(4500, 4900)
             gt_path = osp.join(dataset_path, "..")
         elif dataset_name == "ultimatum1":
             dataset_path = model_cfg.ultimatum1_path
-            test_range = (
-                list(range(10 * 25, 35 * 25, 10))
-                + list(range(60 * 25, 110 * 25, 10))
-                + list(range(550 * 25, 600 * 25, 10))
-                + list(range(725 * 25, 770 * 25, 10))
-            )
-            # For 0min10s ~ 0min35s, 1min ~ 1min50s, 9min15s ~ 10min, 12min05s ~ 12min50s
         elif dataset_name == "HD_ultimatum1":
             dataset_path = model_cfg.HD_ultimatum1_path
-            test_range = model_cfg.HD_ultimatum1_range
         else:
             logger.error(f"Unknown dataset name: {dataset_name}")
             exit(-1)
         # print ( f'Using template on {template_mat}' )
-        test_dataset = BaseDataset(dataset_path, test_range)
+        test_dataset = BaseDataset(dataset_path, range_=None, with_name=True)
         test_loader = DataLoader(
-            test_dataset, batch_size=1, pin_memory=False, num_workers=args.workers, shuffle=False
+            test_dataset,
+            batch_size=1,
+            pin_memory=False,
+            num_workers=args.workers,
+            shuffle=False,
         )
         # test_dataset.template = template
         # test_model.dataset = test_dataset
-        this_dump_dir = osp.join(args.dump_dir, f"{dataset_name}_processed")
+        this_dump_dir = dataset_path
         os.makedirs(this_dump_dir, exist_ok=True)
-        dump_mem(test_model, test_range, test_loader, this_dump_dir)
+        dump_mem(test_model, test_loader, this_dump_dir)
