@@ -65,6 +65,7 @@ class MultiEstimator(object):
             for person_id, result in enumerate(results):
                 this_info_dict[img_id].append(dict())
                 this_info_dict[img_id][person_id]['pose2d'] = result['keypoints']
+                this_info_dict[img_id][person_id]['scores'] = result['keypoints_score']
                 # NOTE: bbox is (x, y) (W, H) format where x and y is up-left point.
                 this_info_dict[img_id][person_id]['bbox'] = result['bbox']
                 bb = np.array(result['bbox'], dtype=int)

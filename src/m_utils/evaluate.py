@@ -232,7 +232,7 @@ if __name__ == "__main__":
 
         elif dataset_name == "Campus":
             dataset_path = model_cfg.campus_path
-            test_range = [i for i in range(350, 471)] + [i for i in range(650, 751)]
+            test_range = list(range(350, 471)) + list(range(650, 751))
             gt_path = dataset_path
 
         else:

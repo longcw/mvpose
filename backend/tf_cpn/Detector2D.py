@@ -235,6 +235,7 @@ class Detector2D(object):
                     category_id=1,
                     score=float(round(cls_skeleton[i][-1], 4)),
                     keypoints=cls_skeleton[i][:-1].round(3).tolist(),
+                    keypoints_score=cls_partsco[i].tolist(),
                     bbox=dets[i]['bbox'],
                     heatmaps=heatmaps[i],
                     crops=crops[i],

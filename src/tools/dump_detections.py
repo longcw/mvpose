@@ -21,9 +21,7 @@ def dump_mem(model, loader, dump_dir):
         "n_targets": -1,
         "n_frames": n_frames,
         "n_cameras": len(camera_ids),
-        "gts_3d": {
-            camera_id: [[] for _ in range(n_frames)] for camera_id in camera_ids
-        },
+        "gts_3d": [[] for _ in range(n_frames)],
         "gts_2d": {
             camera_id: [[] for _ in range(n_frames)] for camera_id in camera_ids
         },  # to fit the format of ground truth
@@ -49,7 +47,7 @@ def dump_mem(model, loader, dump_dir):
                     "camera": camera_id,
                     "frame": fid,
                     "points_2d": pose2d[:, 0:2].tolist(),
-                    "scores": pose2d[:, 2].tolist(),
+                    "scores": det["scores"],
                 }
                 data["gts_2d"][camera_id][fid].append(person)
 
