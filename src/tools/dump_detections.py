@@ -25,6 +25,9 @@ def dump_mem(model, loader, dump_dir):
         "gts_2d": {
             camera_id: [[] for _ in range(n_frames)] for camera_id in camera_ids
         },  # to fit the format of ground truth
+        "frame_names": {
+            camera_id: [None] * n_frames for camera_id in camera_ids
+        },  # to fit the format of ground truth
     }
 
     for fid, (imgs, image_names) in enumerate(tqdm(loader)):
@@ -50,6 +53,7 @@ def dump_mem(model, loader, dump_dir):
                     "scores": det["scores"],
                 }
                 data["gts_2d"][camera_id][fid].append(person)
+                data["frame_names"][camera_id][fid] = image_name
 
     with open(osp.join(dump_dir, "mvpose_detections.json"), "w") as f:
         json.dump(data, f)
@@ -76,15 +80,12 @@ if __name__ == "__main__":
         # template = load_template ( template_mat )
         if dataset_name == "Shelf":
             dataset_path = model_cfg.shelf_path
-            gt_path = dataset_path
-
         elif dataset_name == "Campus":
             dataset_path = model_cfg.campus_path
-            gt_path = dataset_path
-
+        elif dataset_name == "28Cam":
+            dataset_path = "/data/3DPose/2388walsh_c4_28cams/record4"
         elif dataset_name == "Panoptic":
             dataset_path = model_cfg.panoptic_ultimatum_path
-            gt_path = osp.join(dataset_path, "..")
         elif dataset_name == "ultimatum1":
             dataset_path = model_cfg.ultimatum1_path
         elif dataset_name == "HD_ultimatum1":

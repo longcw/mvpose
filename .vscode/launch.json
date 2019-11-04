@@ -18,8 +18,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/m_utils/evaluate.py",
             "args": [
-                "-d", "Campus", 
-                "-dumped", "datasets/Processed/Campus_processed",
+                "-d", "Shelf", 
+                // "-dumped", "datasets/Processed/Campus_processed",
                 "-workers", "0"
             ],
             "console": "integratedTerminal"
@@ -29,7 +29,7 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/src/tools/dump_detections.py",
-            "args": ["-d", "Campus", "-workers", "0"],
+            "args": ["-d", "28Cam", "-workers", "0"],
             "console": "integratedTerminal"
         }
     ]

@@ -22,6 +22,7 @@ class BaseDataset(Dataset):
         ]
         self.infos = OrderedDict()
         self.camera_ids = []
+        self.lengths = []
         for cam_idx, cam_dir in enumerate(cam_dirs):
             # cam_id = int(re.search(r"\d+/$", cam_dir).group().strip("/"))
             self.camera_ids.append(cam_idx)
@@ -29,14 +30,17 @@ class BaseDataset(Dataset):
             self.infos[cam_idx] = OrderedDict()
             img_lists = sorted(glob(osp.join(cam_dir, "*")))
             if range_ is None:
-                range_ = range(len(img_lists))
+                camera_range_ = range(len(img_lists))
+            else:
+                camera_range_ = range_
 
-            for i, img_id in enumerate(range_):
+            self.lengths.append(len(camera_range_))
+            for i, img_id in enumerate(camera_range_):
                 img_path = img_lists[img_id]
                 self.infos[cam_idx][i] = img_path
 
     def __len__(self):
-        return len(self.infos[0])
+        return min(self.lengths)
 
     def __getitem__(self, item):
         imgs = list()
