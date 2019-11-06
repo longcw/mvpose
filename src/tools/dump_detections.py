@@ -53,9 +53,9 @@ def dump_mem(model, loader, dump_dir):
                     "scores": det["scores"],
                 }
                 data["gts_2d"][camera_id][fid].append(person)
-                data["frame_names"][camera_id][fid] = image_name
+            data["frame_names"][camera_id][fid] = image_name
 
-    with open(osp.join(dump_dir, "mvpose_detections.json"), "w") as f:
+    with open(osp.join(dump_dir, "mvpose_detections2.json"), "w") as f:
         json.dump(data, f)
 
 

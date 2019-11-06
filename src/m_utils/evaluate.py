@@ -2,6 +2,7 @@ import os
 import sys
 import os.path as osp
 import pickle
+import json
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if __name__ == "__main__":
@@ -54,6 +55,8 @@ def evaluate(model, actor3D, range_, loader, is_info_dicts=False, dump_dir=None)
     check_result = np.zeros((len(actor3D[0]), len(actor3D), 10), dtype=np.int32)
     accuracy_cnt = 0
     error_cnt = 0
+    results_3d = {}  # fid -> p3ds
+    results_2d = {}  # camera -> {fid -> p2ds}
     for idx, imgs in enumerate(tqdm(loader)):
         img_id = range_[idx]
         try:
@@ -78,6 +81,18 @@ def evaluate(model, actor3D, range_, loader, is_info_dicts=False, dump_dir=None)
         except Exception as e:
             logger.critical(e)
             poses3d = False
+
+        # save p3ds
+        if not poses3d:
+            shelf_poses = []
+        else:
+            shelf_poses = np.stack([coco2shelf3D(i) for i in deepcopy(poses3d)])
+        results_3d[img_id] = []
+        for i, p3ds in enumerate(shelf_poses):
+            p3ds = p3ds.astype(float) * 100.
+            results_3d[img_id].append(
+                {"frame": img_id, "id": i, "points_3d": p3ds.tolist()}
+            )
 
         for pid in range(len(actor3D)):
             if actor3D[pid][img_id][0].shape == (1, 0) or actor3D[pid][img_id][
@@ -206,6 +221,14 @@ def evaluate(model, actor3D, range_, loader, is_info_dicts=False, dump_dir=None)
             writer.writerow([model_cfg])
     print(tb)
     print(model_cfg)
+
+    results = {"res_3d": results_3d, "res_2d": results_2d}
+    output_file = "results_{}.json".format(dataset_name)
+    logging.info("Save results to {}".format(output_file))
+
+    with open(output_file, "w") as f:
+        json.dump(results, f)
+
     return check_result, list_tb
 
 
