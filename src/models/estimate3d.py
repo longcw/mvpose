@@ -46,12 +46,12 @@ class MultiEstimator(object):
     def init_est2d(self):
         self.est2d = Estimator_2d(DEBUGGING=self.debug)
 
-    def predict(self, imgs, camera_parameter, template_name='Shelf', show=False, plt_id=0):
+    def predict(self, imgs, camera_parameter, template_name='Shelf', show=False, plt_id=0, rtn_2d=False):
         info_dict = self._infer_single2d(imgs)
         self.dataset = MemDataset(
             info_dict=info_dict, camera_parameter=camera_parameter, template_name=template_name
         )
-        return self._estimate3d(0, show=show, plt_id=plt_id)
+        return self._estimate3d(0, show=show, plt_id=plt_id, rtn_2d=rtn_2d)
 
     def _infer_single2d(self, imgs, img_id=0, dir='/home/jiangwen/tmp/Multi'):
         if self.est2d is None:
@@ -80,7 +80,7 @@ class MultiEstimator(object):
             info_dict[cam_id] = this_info_dict
         return info_dict
 
-    def _estimate3d(self, img_id, show=False, plt_id=0):
+    def _estimate3d(self, img_id, show=False, plt_id=0, rtn_2d=False):
         data_batch = self.dataset[img_id]
         affinity_mat = self.extractor.get_affinity(data_batch, rerank=self.cfg.rerank)
         if self.cfg.rerank:
@@ -188,6 +188,9 @@ class MultiEstimator(object):
                 plt_id,
                 multi_pose3d,
             )
+
+        if rtn_2d:
+            return multi_pose3d, np.copy(pose_mat), np.copy(matched_list), np.copy(sub_imgid2cam)
 
         return multi_pose3d
 

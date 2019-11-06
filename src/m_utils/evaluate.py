@@ -51,6 +51,29 @@ def numpify(info_dicts):
     return info_dicts
 
 
+def coco2shelf2D(coco_pose):
+    """
+    transform coco order(our method output) 3d pose to shelf dataset order with interpolation
+    :param coco_pose: np.array with shape 17x2
+    :return: 3D pose in shelf order with shape 14x2
+    """
+    shelf_pose = np.zeros((14, 2))
+    coco2shelf = np.array([16, 14, 12, 11, 13, 15, 10, 8, 6, 5, 7, 9])
+    shelf_pose[0:12] += coco_pose[coco2shelf]
+
+    # Use middle of shoulder to init
+    shelf_pose[12] = (shelf_pose[8] + shelf_pose[9]) / 2
+    # shelf_pose[13] = coco_pose[0]  # use nose to init
+    shelf_pose[13] = shelf_pose[12] + (coco_pose[0] - shelf_pose[12]) * np.array(
+        [0, 1.5]
+    )
+    shelf_pose[12] = shelf_pose[12] + (coco_pose[0] - shelf_pose[12]) * np.array(
+        [0, 0.6]
+    )
+
+    return shelf_pose
+
+
 def evaluate(model, actor3D, range_, loader, is_info_dicts=False, dump_dir=None):
     check_result = np.zeros((len(actor3D[0]), len(actor3D), 10), dtype=np.int32)
     accuracy_cnt = 0
@@ -67,16 +90,19 @@ def evaluate(model, actor3D, range_, loader, is_info_dicts=False, dump_dir=None)
                     camera_parameter=camera_parameter,
                     template_name="Unified",
                 )
-                poses3d = model._estimate3d(0, show=False)
+                poses3d, pose_mat, matched_list, imgid2cam = model._estimate3d(
+                    0, show=False, rtn_2d=True
+                )
             else:
                 this_imgs = list()
                 for img_batch in imgs:
                     this_imgs.append(img_batch.squeeze().numpy())
-                poses3d = model.predict(
+                poses3d, pose_mat, matched_list, imgid2cam = model.predict(
                     imgs=this_imgs,
                     camera_parameter=camera_parameter,
                     template_name="Unified",
                     show=False,
+                    rtn_2d=True,
                 )
         except Exception as e:
             logger.critical(e)
@@ -93,6 +119,22 @@ def evaluate(model, actor3D, range_, loader, is_info_dicts=False, dump_dir=None)
             results_3d[img_id].append(
                 {"frame": img_id, "id": i, "points_3d": p3ds.tolist()}
             )
+
+        # save 2d
+        for i, matched in enumerate(matched_list):
+            for pose_i in matched:
+                camera_id = int(imgid2cam[pose_i])
+                results_2d.setdefault(camera_id, {})
+                results_2d[camera_id].setdefault(img_id, [])
+                shelf_pose = coco2shelf2D(pose_mat[pose_i].astype(float))
+                results_2d[camera_id][img_id].append(
+                    {
+                        "camera": camera_id,
+                        "frame": img_id,
+                        "id": i,
+                        "points_2d": shelf_pose.tolist(),
+                    }
+                )
 
         for pid in range(len(actor3D)):
             if actor3D[pid][img_id][0].shape == (1, 0) or actor3D[pid][img_id][
