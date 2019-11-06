@@ -153,8 +153,8 @@ class CommonDataset(Dataset):
         # project the 3d point to each view to get the 2d points
         for i in person:
             Pi = self.P[sub_imgid2cam[i]]
-            # heatmap = np.load(osp.join(self.data_dir, info_list[i]['heatmap_path']))
-            heatmap = np.load(osp.join(self.data_dir, info_list[i]['data_path']))["heatmap_data"]
+            heatmap = np.load(osp.join(self.data_dir, info_list[i]['heatmap_path']))
+            # heatmap = np.load(osp.join(self.data_dir, info_list[i]['data_path']))["heatmap_data"]
             crop = np.array(info_list[i]['heatmap_bbox'])
             for j in range(heatmap.shape[0]):
                 heatmap_j = heatmap[j]

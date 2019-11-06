@@ -39,37 +39,37 @@ def dump_mem(model, range_, loader, dump_dir):
             np.save(path2save, info_dict.pop("image_data"))
             info_dict["image_path"] = osp.relpath(path2save, dump_dir)
             for pid, person in enumerate(info_dict[0]):
-                person["data_path"] = osp.relpath(
-                    osp.join(dump_dir, f"{img_id:0{num_len}d}.{cam_id}.{pid}.npz"),
+                # person["data_path"] = osp.relpath(
+                #     osp.join(dump_dir, f"{img_id:0{num_len}d}.{cam_id}.{pid}.npz"),
+                #     dump_dir,
+                # )
+                # np.savez_compressed(
+                #     osp.join(dump_dir, person["data_path"]),
+                #     heatmap_data=person.pop("heatmap_data"),
+                #     cropped_img=person.pop("cropped_img"),
+                # )
+
+                person["heatmap_path"] = osp.relpath(
+                    osp.join(
+                        dump_dir,
+                        f"{img_id:0{num_len}d}.{cam_id}.{pid}.heatmap_data.npy",
+                    ),
                     dump_dir,
                 )
-                np.savez_compressed(
-                    osp.join(dump_dir, person["data_path"]),
-                    heatmap_data=person.pop("heatmap_data"),
-                    cropped_img=person.pop("cropped_img"),
+                np.save(
+                    osp.join(dump_dir, person["heatmap_path"]),
+                    person.pop("heatmap_data"),
                 )
-
-                # person["heatmap_path"] = osp.relpath(
-                #     osp.join(
-                #         dump_dir,
-                #         f"{img_id:0{num_len}d}.{cam_id}.{pid}.heatmap_data.npy",
-                #     ),
-                #     dump_dir,
-                # )
-                # np.save(
-                #     osp.join(dump_dir, person["heatmap_path"]),
-                #     person.pop("heatmap_data"),
-                # )
-                # person["cropped_path"] = osp.relpath(
-                #     osp.join(
-                #         dump_dir, f"{img_id:0{num_len}d}.{cam_id}.{pid}.cropped_img.npy"
-                #     ),
-                #     dump_dir,
-                # )
-                # np.save(
-                #     osp.join(dump_dir, person["cropped_path"]),
-                #     person.pop("cropped_img"),
-                # )
+                person["cropped_path"] = osp.relpath(
+                    osp.join(
+                        dump_dir, f"{img_id:0{num_len}d}.{cam_id}.{pid}.cropped_img.npy"
+                    ),
+                    dump_dir,
+                )
+                np.save(
+                    osp.join(dump_dir, person["cropped_path"]),
+                    person.pop("cropped_img"),
+                )
 
         with open(
             osp.join(dump_dir, f"{img_id:0{num_len}d}.info_dicts.pickle"), "wb"

@@ -89,7 +89,7 @@ def evaluate(model, actor3D, range_, loader, is_info_dicts=False, dump_dir=None)
             shelf_poses = np.stack([coco2shelf3D(i) for i in deepcopy(poses3d)])
         results_3d[img_id] = []
         for i, p3ds in enumerate(shelf_poses):
-            p3ds = p3ds.astype(float) * 100.
+            p3ds = p3ds.astype(float) * 100.0
             results_3d[img_id].append(
                 {"frame": img_id, "id": i, "points_3d": p3ds.tolist()}
             )
@@ -223,11 +223,12 @@ def evaluate(model, actor3D, range_, loader, is_info_dicts=False, dump_dir=None)
     print(model_cfg)
 
     results = {"res_3d": results_3d, "res_2d": results_2d}
-    output_file = "results_{}.json".format(dataset_name)
-    logging.info("Save results to {}".format(output_file))
+    if dump_dir is not None:
+        output_file = os.path.join(dump_dir, "results_{}.json".format(dataset_name))
+        logging.info("Save results to {}".format(output_file))
 
-    with open(output_file, "w") as f:
-        json.dump(results, f)
+        with open(output_file, "w") as f:
+            json.dump(results, f)
 
     return check_result, list_tb
 
