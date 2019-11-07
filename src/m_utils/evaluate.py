@@ -74,12 +74,21 @@ def coco2shelf2D(coco_pose):
     return shelf_pose
 
 
-def evaluate(model, actor3D, range_, loader, is_info_dicts=False, dump_dir=None):
+def evaluate(model, actor3D, range_, loader, is_info_dicts=False, dumped_result_file=None, dump_dir=None):
     check_result = np.zeros((len(actor3D[0]), len(actor3D), 10), dtype=np.int32)
     accuracy_cnt = 0
     error_cnt = 0
     results_3d = {}  # fid -> p3ds
     results_2d = {}  # camera -> {fid -> p2ds}
+
+    if dumped_result_file is not None:
+        with open(dumped_result_file, "r") as f:
+            loaded_results = json.load(f)
+        loaded_results_2d = loaded_results["res_2d"]
+        print("load results from {}".format(dumped_result_file))
+    else:
+        loaded_results_2d = None
+
     for idx, imgs in enumerate(tqdm(loader)):
         img_id = range_[idx]
         try:
@@ -90,9 +99,16 @@ def evaluate(model, actor3D, range_, loader, is_info_dicts=False, dump_dir=None)
                     camera_parameter=camera_parameter,
                     template_name="Unified",
                 )
-                poses3d, pose_mat, matched_list, imgid2cam = model._estimate3d(
-                    0, show=False, rtn_2d=True
-                )
+                if loaded_results_2d is not None:
+                    images_res_2d = {
+                        int(camera_id): cam_res_2d.get(str(img_id), [])
+                        for camera_id, cam_res_2d in loaded_results_2d.items()
+                    }
+                    poses3d, pose_mat, matched_list, imgid2cam = model._estimate3d_with_loaded(0, images_res_2d)
+                else:
+                    poses3d, pose_mat, matched_list, imgid2cam = model._estimate3d(
+                        0, show=False, rtn_2d=True
+                    )
             else:
                 this_imgs = list()
                 for img_batch in imgs:
@@ -283,7 +299,8 @@ if __name__ == "__main__":
         "-d", nargs="+", dest="datasets", required=True, choices=["Shelf", "Campus"]
     )
     parser.add_argument("-dumped", nargs="+", dest="dumped_dir", default=None)
-    parser.add_argument("-workers", type=int, default=4, dest="workers")
+    parser.add_argument("-load", nargs="+", dest="loaded_results", default=None)
+    parser.add_argument("-workers", type=int, default=0, dest="workers")
     args = parser.parse_args()
 
     test_model = MultiEstimator(cfg=model_cfg)
@@ -329,17 +346,24 @@ if __name__ == "__main__":
                 num_workers=args.workers,
                 shuffle=False,
             )
+        if args.loaded_results:
+            dumped_result_file = args.loaded_results[dataset_idx]
+        else:
+            dumped_result_file = None
 
         actorsGT = scio.loadmat(osp.join(gt_path, "actorsGT.mat"))
         test_actor3D = actorsGT["actor3D"][0]
         if dataset_name == "Panoptic":
             test_actor3D /= 100  # mm->m
+        dump_dir = osp.join(project_root, "result" if not dumped_result_file else "result-loaded", model_cfg.metric.replace(" ", "-"))
+        os.makedirs(dump_dir, exist_ok=True)
         evaluate(
             test_model,
             test_actor3D,
             test_range,
             test_loader,
             is_info_dicts=bool(args.dumped_dir),
-            dump_dir=osp.join(project_root, "result"),
+            dumped_result_file=dumped_result_file,
+            dump_dir=dump_dir
         )
 

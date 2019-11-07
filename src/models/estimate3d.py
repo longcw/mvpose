@@ -1,6 +1,7 @@
 import sys
 import os
 import os.path as osp
+from scipy.optimize import linear_sum_assignment
 
 # Config project if not exist
 project_path = osp.abspath(osp.join(osp.dirname(__file__), '..', '..'))
@@ -79,6 +80,81 @@ class MultiEstimator(object):
 
             info_dict[cam_id] = this_info_dict
         return info_dict
+
+    @staticmethod
+    def coco2shelf2D(coco_pose):
+        """
+        transform coco order(our method output) 3d pose to shelf dataset order with interpolation
+        :param coco_pose: np.array with shape 17x2
+        :return: 3D pose in shelf order with shape 14x2
+        """
+        shelf_pose = np.zeros((14, 2))
+        coco2shelf = np.array([16, 14, 12, 11, 13, 15, 10, 8, 6, 5, 7, 9])
+        shelf_pose[0:12] += coco_pose[coco2shelf]
+
+        # Use middle of shoulder to init
+        shelf_pose[12] = (shelf_pose[8] + shelf_pose[9]) / 2
+        # shelf_pose[13] = coco_pose[0]  # use nose to init
+        shelf_pose[13] = shelf_pose[12] + (coco_pose[0] - shelf_pose[12]) * np.array(
+            [0, 1.5]
+        )
+        shelf_pose[12] = shelf_pose[12] + (coco_pose[0] - shelf_pose[12]) * np.array(
+            [0, 0.6]
+        )
+
+        return shelf_pose
+
+    def _estimate3d_with_loaded(self, img_id, imgs_res_2d):
+        info_list = list()
+        for cam_id in self.dataset.cam_names:
+            info_list += self.dataset.info_dict[cam_id][img_id]
+
+        pose_mat = np.array([i['pose2d'] for i in info_list]).reshape(-1, model_cfg.joint_num, 3)[..., :2]
+
+        sub_imgid2cam = np.zeros(pose_mat.shape[0], dtype=np.int32)
+        dimGroup = self.dataset.dimGroup[img_id]
+        for idx, i in enumerate(range(len(dimGroup) - 1)):
+            sub_imgid2cam[dimGroup[i] : dimGroup[i + 1]] = idx
+
+        # match with loaded 2d poses
+        cam_poses = {}
+        count = 0
+        for i, camera_id in enumerate(sub_imgid2cam):
+            cam_poses.setdefault(camera_id, [])
+            cam_poses[camera_id].append((pose_mat[i], count))
+            count += 1
+        
+        matched_dict = {}
+        for camera_id, poses in cam_poses.items():
+            loaded_persons = imgs_res_2d.get(camera_id, [])
+            if len(poses) == 0 or len(loaded_persons) == 0:
+                continue
+            dists = np.zeros([len(poses), len(loaded_persons)], dtype=float)
+            for i, pose in enumerate(poses):
+                shelf_pose = self.coco2shelf2D(pose[0])
+                for j, person in enumerate(loaded_persons):
+                    person_pose = np.asarray(person["points_2d"])
+                    valid = np.any(person_pose > 0, axis=1)
+                    if np.mean(valid) < 0.2:
+                        dists[i, j] = 10000
+                    else:
+                        dists[i, j] = np.sum(np.linalg.norm(shelf_pose - person_pose, axis=1) * valid) / np.sum(valid)
+
+            matches = linear_sum_assignment(dists)
+            for row, col in zip(*matches):
+                if dists[row, col] < 100:
+                    person = loaded_persons[col]
+                    idx = poses[row][1]
+                    matched_dict.setdefault(person["id"], [])
+                    matched_dict[person["id"]].append(idx)
+
+
+        matched_list = list(matched_dict.values())
+        matched_list = [np.array(i) for i in matched_list]
+        multi_pose3d = self._hybrid_kernel(matched_list, pose_mat, sub_imgid2cam, img_id)
+        chosen_img = [[]] * len(sub_imgid2cam)
+
+        return multi_pose3d, np.copy(pose_mat), np.copy(matched_list), np.copy(sub_imgid2cam)
 
     def _estimate3d(self, img_id, show=False, plt_id=0, rtn_2d=False):
         data_batch = self.dataset[img_id]

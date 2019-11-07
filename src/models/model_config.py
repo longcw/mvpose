@@ -22,6 +22,8 @@ class ModelConfig(object):
     rerank = False
     use_mincut = False
     metric = 'geometry mean'
+    # metric = 'Geometry only'
+    # metric = 'ReID only'
     testing_on = 'Shelf'
     reprojection_refine = False
     refine_threshold = 1
