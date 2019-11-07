@@ -44,6 +44,8 @@ def is_right(
 
 def numpify(info_dicts):
     for info_dict in info_dicts.values():
+        if isinstance(info_dict["image_data"], np.ndarray):
+            continue
         info_dict["image_data"] = info_dict["image_data"].squeeze().numpy()
         for person in info_dict[0]:
             person["heatmap_data"] = person["heatmap_data"].squeeze().numpy()
@@ -74,7 +76,15 @@ def coco2shelf2D(coco_pose):
     return shelf_pose
 
 
-def evaluate(model, actor3D, range_, loader, is_info_dicts=False, dumped_result_file=None, dump_dir=None):
+def evaluate(
+    model,
+    actor3D,
+    range_,
+    loader,
+    is_info_dicts=False,
+    dumped_result_file=None,
+    dump_dir=None,
+):
     check_result = np.zeros((len(actor3D[0]), len(actor3D), 10), dtype=np.int32)
     accuracy_cnt = 0
     error_cnt = 0
@@ -88,6 +98,13 @@ def evaluate(model, actor3D, range_, loader, is_info_dicts=False, dumped_result_
         print("load results from {}".format(dumped_result_file))
     else:
         loaded_results_2d = None
+
+    # for idx in tqdm(range(len(loader)), total=len(loader)):
+    #     if idx < 199:
+    #         continue
+    #     if idx > 310:
+    #         break
+    #     imgs = loader.dataset[idx]
 
     for idx, imgs in enumerate(tqdm(loader)):
         img_id = range_[idx]
@@ -104,7 +121,9 @@ def evaluate(model, actor3D, range_, loader, is_info_dicts=False, dumped_result_
                         int(camera_id): cam_res_2d.get(str(img_id), [])
                         for camera_id, cam_res_2d in loaded_results_2d.items()
                     }
-                    poses3d, pose_mat, matched_list, imgid2cam = model._estimate3d_with_loaded(0, images_res_2d)
+                    poses3d, pose_mat, matched_list, imgid2cam = model._estimate3d_with_loaded(
+                        0, images_res_2d
+                    )
                 else:
                     poses3d, pose_mat, matched_list, imgid2cam = model._estimate3d(
                         0, show=False, rtn_2d=True
@@ -355,7 +374,11 @@ if __name__ == "__main__":
         test_actor3D = actorsGT["actor3D"][0]
         if dataset_name == "Panoptic":
             test_actor3D /= 100  # mm->m
-        dump_dir = osp.join(project_root, "result" if not dumped_result_file else "result-loaded", model_cfg.metric.replace(" ", "-"))
+        dump_dir = osp.join(
+            project_root,
+            "result" if not dumped_result_file else "result-loaded",
+            model_cfg.metric.replace(" ", "-"),
+        )
         os.makedirs(dump_dir, exist_ok=True)
         evaluate(
             test_model,
@@ -364,6 +387,6 @@ if __name__ == "__main__":
             test_loader,
             is_info_dicts=bool(args.dumped_dir),
             dumped_result_file=dumped_result_file,
-            dump_dir=dump_dir
+            dump_dir=dump_dir,
         )
 

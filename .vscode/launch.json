@@ -5,11 +5,21 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Python: Demo",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/src/m_utils/demo.py",
-            "args": ["-d", "Campus"],
+            "args": [
+                "-d",
+                "Campus"
+            ],
             "console": "integratedTerminal"
         },
         {
@@ -18,9 +28,12 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/m_utils/evaluate.py",
             "args": [
-                "-d", "Campus", 
-                "-dumped", "datasets/Processed/Campus_processed",
-                "-workers", "0"
+                "-d",
+                "Campus",
+                "-dumped",
+                "datasets/Processed/Campus_processed",
+                "-workers",
+                "0"
             ],
             "console": "integratedTerminal"
         },
@@ -29,7 +42,12 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/src/tools/dump_detections.py",
-            "args": ["-d", "28Cam", "-workers", "0"],
+            "args": [
+                "-d",
+                "28Cam",
+                "-workers",
+                "0"
+            ],
             "console": "integratedTerminal"
         }
     ]
